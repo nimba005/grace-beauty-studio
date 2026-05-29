@@ -1,0 +1,55 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ settings.studio_name }} | Salon Services & Natural Products</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#top"><span>G</span><strong>{{ settings.studio_name }}</strong></a>
+    <nav aria-label="Main navigation"><a href="#services">Services</a><a href="#products">Products</a><a href="#booking">Book</a></nav>
+    <a class="header-action" href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20would%20like%20to%20book%20or%20order." target="_blank" rel="noreferrer">WhatsApp</a>
+  </header>
+  <main id="top">
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}</div>{% endif %}{% endwith %}
+    <section class="hero-section">
+      <div class="hero-media" aria-hidden="true"></div>
+      <div class="hero-content">
+        <p class="eyebrow">{{ settings.tagline }}</p>
+        <h1>{{ settings.hero_title }}</h1>
+        <p>{{ settings.hero_subtitle }}</p>
+        <div class="hero-actions"><a class="button primary" href="#booking">Book a service</a><a class="button soft" href="#products">Shop natural care</a></div>
+      </div>
+      <aside class="hero-card"><span>Open</span><strong>{{ settings.opening_hours }}</strong><small>{{ settings.address }}</small></aside>
+    </section>
+    <section class="intro-strip"><article><strong>{{ services|length }}</strong><span>Salon services</span></article><article><strong>{{ products|length }}</strong><span>Natural products</span></article><article><strong>1:1</strong><span>Beauty guidance</span></article></section>
+    <section id="services" class="section-block blush-band">
+      <div class="section-heading"><p class="eyebrow">Salon menu</p><h2>Hair services designed for confidence, comfort, and lasting beauty.</h2></div>
+      <div class="card-grid service-grid">
+        {% for service in services %}
+          <article class="beauty-card service-card"><img src="{{ service.image_url }}" alt="{{ service.title }}"><div><span class="pill">{{ service.category }}</span><h3>{{ service.title }}</h3><p>{{ service.description }}</p><div class="card-meta"><strong>{{ service.price }}</strong><span>{{ service.duration }}</span></div><a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20want%20to%20book%20{{ service.title|urlencode }}" target="_blank" rel="noreferrer">Book this style</a></div></article>
+        {% endfor %}
+      </div>
+    </section>
+    <section id="products" class="section-block cream-band">
+      <div class="section-heading split-heading"><div><p class="eyebrow">Grace shelves</p><h2>Natural products for soft hair, nourished skin, and everyday glow.</h2></div><p>Ghee blends, shea butter, and hair-care essentials can be ordered directly through WhatsApp.</p></div>
+      <div class="card-grid product-grid">
+        {% for product in products %}
+          <article class="beauty-card product-card"><img src="{{ product.image_url }}" alt="{{ product.name }}"><div><span class="pill product-pill">{{ product.category }}</span><h3>{{ product.name }}</h3><p>{{ product.description }}</p><div class="card-meta"><strong>{{ product.price }}</strong><span>{{ product.size }} · {{ product.stock_status }}</span></div><a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20want%20to%20order%20{{ product.name|urlencode }}" target="_blank" rel="noreferrer">Order product</a></div></article>
+        {% endfor %}
+      </div>
+    </section>
+    <section id="booking" class="booking-section">
+      <div><p class="eyebrow">Book or order</p><h2>Tell Grace what you need and she will confirm availability.</h2><p>{{ settings.booking_note }}</p><div class="contact-list"><span>{{ settings.phone }}</span><span>{{ settings.instagram }}</span><span>{{ settings.address }}</span></div></div>
+      <form class="booking-form" method="post" action="{{ url_for('inquire') }}">
+        <label>Name<input name="name" required placeholder="Your name"></label><label>Phone or WhatsApp<input name="phone" required placeholder="Your phone number"></label><label>Email<input name="email" type="email" placeholder="Optional"></label><label>Interest<select name="interest"><option>Salon booking</option><option>Product order</option><option>Bridal or event styling</option><option>General inquiry</option></select></label><label class="wide">Message<textarea name="message" rows="4" placeholder="Share the hairstyle, product, date, or budget you have in mind."></textarea></label><button type="submit">Send request</button>
+      </form>
+    </section>
+  </main>
+  <footer class="site-footer"><div><strong>{{ settings.studio_name }}</strong><span>{{ settings.tagline }}</span></div><a href="/grace-admin/login">Studio admin</a></footer>
+</body>
+</html>

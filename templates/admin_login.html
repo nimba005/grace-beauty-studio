@@ -1,0 +1,6 @@
+
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Grace Studio Admin</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body class="admin-login-body"><main class="login-panel"><a class="brand" href="/"><span>G</span><strong>Grace Beauty Studio</strong></a><h1>Studio admin</h1><p>Sign in to update services, product shelves, contact details, and customer inquiries.</p>{% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}</div>{% endif %}{% endwith %}<form method="post" class="booking-form admin-login-form"><label>Email<input name="email" type="email" required placeholder="grace@beautystudio.local"></label><label>Password<input name="password" type="password" required placeholder="Password"></label><button type="submit">Continue to admin</button></form></main></body>
+</html>
