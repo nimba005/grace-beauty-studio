@@ -156,6 +156,28 @@ CREATE TABLE IF NOT EXISTS inquiries (
     status TEXT NOT NULL DEFAULT 'New',
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS testimonials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_name TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    message TEXT NOT NULL DEFAULT '',
+    tag TEXT NOT NULL DEFAULT '',
+    is_approved INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_name TEXT NOT NULL,
+    phone TEXT NOT NULL DEFAULT '',
+    email TEXT NOT NULL DEFAULT '',
+    item_type TEXT NOT NULL DEFAULT '',
+    item_id INTEGER NOT NULL DEFAULT 0,
+    item_name TEXT NOT NULL DEFAULT '',
+    rating INTEGER NOT NULL DEFAULT 5,
+    message TEXT NOT NULL DEFAULT '',
+    is_approved INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
 """
 POSTGRES_SCHEMA = SCHEMA.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "BIGSERIAL PRIMARY KEY")
 
@@ -165,22 +187,44 @@ DEFAULT_SETTINGS = {
     "hero_title": "Hair, glow, and natural care made beautifully personal.",
     "hero_subtitle": "Book protective styles, salon care, bridal looks, and shop Grace's natural ghee and shea butter products for nourished hair and skin.",
     "address": "Nairobi, Kenya",
-    "phone": os.environ.get("STUDIO_PHONE", "+254 700 000 000"),
-    "whatsapp": os.environ.get("STUDIO_WHATSAPP", "254700000000"),
+    "email": os.environ.get("STUDIO_EMAIL", "ptrulina50@gmail.com"),
+    "phone": os.environ.get("STUDIO_PHONE", "+254700549855"),
+    "whatsapp": os.environ.get("STUDIO_WHATSAPP", "25439735584"),
     "instagram": "@gracebeautystudio",
     "opening_hours": "Mon - Sat, 8:00 AM - 7:00 PM",
     "booking_note": "Send a WhatsApp message to reserve a style, ask about products, or request a bridal/home service quote.",
 }
 DEFAULT_SERVICES = [
-    ("Knotless Braids", "Protective styling", "Lightweight, neat braids finished with clean parting and hair-care guidance.", "From KSh 3,500", "4-6 hrs", "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=900&q=85", 1, 1, 1),
-    ("Silk Press & Treatment", "Salon care", "A smooth press with deep conditioning for shine, movement, and healthier hair.", "From KSh 2,500", "2 hrs", "https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=900&q=85", 1, 1, 2),
-    ("Bridal & Event Styling", "Occasion styling", "Elegant updos, soft glam hair preparation, and coordinated looks for special events.", "Quote on request", "Consultation", "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=900&q=85", 1, 1, 3),
-    ("Natural Hair Care", "Salon care", "Wash, detangle, moisturize, trim, and protective finish for natural hair routines.", "From KSh 1,800", "90 mins", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 0, 1, 4),
+    ("Knotless Braids", "Braids", "Lightweight, neat knotless braids with clean parting, soft tension control, and care guidance for longer wear.", "From KSh 3,500", "4-6 hrs", "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=900&q=85", 1, 1, 1),
+    ("Soft Locs", "Locs", "A protective loc style with a soft natural finish, ideal for elegant everyday wear and low-maintenance styling.", "From KSh 4,500", "4-6 hrs", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 1, 1, 2),
+    ("Children Cornrows", "Children styles", "Gentle cornrows for girls with age-friendly tension, neat lines, and optional beads or simple creative patterns.", "From KSh 1,200", "1-2 hrs", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 1, 1, 3),
+    ("Bridal & Event Styling", "Bridal and events", "Elegant updos, soft glam hair preparation, and coordinated looks for weddings, shoots, and special occasions.", "Quote on request", "Consultation", "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=900&q=85", 1, 1, 4),
+    ("Natural Hair Care", "Natural hair care", "Wash, detangle, moisturize, trim, and protective finish for natural hair routines and healthy growth plans.", "From KSh 1,800", "90 mins", "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=85", 0, 1, 5),
+]
+AFRICAN_SERVICE_CATALOG = [
+    ("Box Braids", "Braids", "Classic long-lasting braids with clean sectioning, sealed ends, and styling options for school, work, or events.", "From KSh 3,000", "4-6 hrs", "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=900&q=85", 0, 1, 6),
+    ("Fulani Braids", "Braids", "A stylish braided look with front detail, optional beads, and a polished finish inspired by African braid artistry.", "From KSh 3,800", "4-5 hrs", "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&w=900&q=85", 0, 1, 7),
+    ("Goddess Braids", "Braids", "Statement braids with soft curls added for a feminine finish that works beautifully for holidays and events.", "From KSh 4,200", "4-6 hrs", "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&w=900&q=85", 0, 1, 8),
+    ("Butterfly Locs", "Locs", "Textured locs with a light distressed finish for a modern protective style with volume and personality.", "From KSh 4,800", "5-7 hrs", "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=85", 0, 1, 9),
+    ("Starter Locs", "Locs", "Clean starter loc installation with parting guidance, scalp care, and a simple maintenance plan.", "From KSh 2,500", "2-3 hrs", "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=85", 0, 1, 10),
+    ("Loc Retwist", "Locs", "Gentle retwist, scalp refresh, and neat finishing for mature locs without over-tensioning the roots.", "From KSh 1,800", "90 mins", "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=900&q=85", 0, 1, 11),
+    ("Flat Twists", "Natural hair care", "Low-tension flat twists for natural hair, ideal for protective styling, growth breaks, and soft everyday looks.", "From KSh 1,500", "1-2 hrs", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 0, 1, 12),
+    ("Twist Out Prep", "Natural hair care", "Hydrating wash, stretch, and twist preparation for defined curls and easier weekly natural hair maintenance.", "From KSh 1,800", "2 hrs", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 0, 1, 13),
+    ("Deep Treatment & Steam", "Treatments", "Moisture-focused treatment and steam care for dry, brittle, or recently unbraided hair.", "From KSh 1,500", "75 mins", "https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=900&q=85", 0, 1, 14),
+    ("Silk Press & Trim", "Treatments", "Smooth press, deep conditioning, and light trim for clients who want movement, shine, and shape.", "From KSh 2,800", "2 hrs", "https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=900&q=85", 0, 1, 15),
+    ("Girls Beaded Braids", "Children styles", "Cute child-friendly braids with beads, soft edges, and careful tension control for young girls.", "From KSh 1,500", "2-3 hrs", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 0, 1, 16),
+    ("School Lines", "Children styles", "Simple, neat school-ready cornrows that are quick, clean, and easy to maintain during the week.", "From KSh 800", "45-90 mins", "https://images.unsplash.com/photo-1605980776566-0486c3ac7617?auto=format&fit=crop&w=900&q=85", 0, 1, 17),
+    ("Traditional Bridal Braids", "Bridal and events", "Refined bridal braids with clean detail, accessories, and consultation for outfit and ceremony coordination.", "Quote on request", "Consultation", "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=900&q=85", 0, 1, 18),
 ]
 DEFAULT_PRODUCTS = [
     ("Natural Hair & Skin Ghee", "Hair and skin care", "Rich natural ghee blend for sealing moisture, softening strands, and nourishing dry skin.", "KSh 850", "250g", "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?auto=format&fit=crop&w=900&q=85", "Available", 1, 1, 1),
     ("Raw Shea Butter", "Natural care", "Whipped-style shea butter for protective styling, dry elbows, hands, and natural glow routines.", "KSh 750", "200g", "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&w=900&q=85", "Available", 1, 1, 2),
     ("Hair Growth Butter", "Hair care", "A soft butter blend for scalp massage, protective styles, edges, and weekly hair-care rituals.", "KSh 950", "180g", "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=900&q=85", "Available", 1, 1, 3),
+]
+DEFAULT_TESTIMONIALS = [
+    ("Achieng", "Soft finish, clean service", "Grace understood exactly what I wanted and the final look stayed neat and comfortable.", "Protective styling", 1),
+    ("Mercy", "The shea butter is now a routine", "The product feels rich without being heavy, and my skin stays moisturized for longer.", "Natural care", 1),
+    ("Njeri", "Professional and warm", "Booking was simple, the advice was honest, and the service felt very personal.", "Salon experience", 1),
 ]
 
 
@@ -202,14 +246,27 @@ def seed_data():
     for key, value in DEFAULT_SETTINGS.items():
         if not query_one("SELECT key FROM settings WHERE key = ?", (key,)):
             execute("INSERT INTO settings (key, value) VALUES (?, ?)", (key, value))
-    admin_email = os.environ.get("ADMIN_EMAIL", "grace@beautystudio.local")
+    for key in ["email", "phone", "whatsapp"]:
+        if USE_POSTGRES:
+            execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", (key, DEFAULT_SETTINGS[key]))
+        else:
+            execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, DEFAULT_SETTINGS[key]))
+    admin_email = os.environ.get("ADMIN_EMAIL", "ptrulina50@gmail.com")
     admin_password = os.environ.get("ADMIN_PASSWORD", "Grace@1234")
     if not query_one("SELECT id FROM admin_users WHERE email = ?", (admin_email,)):
         execute("INSERT INTO admin_users (email, password_hash, name, created_at) VALUES (?, ?, ?, ?)", (admin_email, generate_password_hash(admin_password), "Grace", now_stamp()))
     if not query_one("SELECT COUNT(*) AS total FROM services")["total"]:
         executemany("INSERT INTO services (title, category, description, price, duration, image_url, is_featured, is_active, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [item + (now_stamp(),) for item in DEFAULT_SERVICES])
+    for item in DEFAULT_SERVICES:
+        if query_one("SELECT id FROM services WHERE title = ?", (item[0],)):
+            execute("UPDATE services SET category = ?, description = ?, price = ?, duration = ?, image_url = ?, sort_order = ?, updated_at = ? WHERE title = ?", (item[1], item[2], item[3], item[4], item[5], item[8], now_stamp(), item[0]))
+    for item in AFRICAN_SERVICE_CATALOG:
+        if not query_one("SELECT id FROM services WHERE title = ?", (item[0],)):
+            execute("INSERT INTO services (title, category, description, price, duration, image_url, is_featured, is_active, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", item + (now_stamp(),))
     if not query_one("SELECT COUNT(*) AS total FROM products")["total"]:
         executemany("INSERT INTO products (name, category, description, price, size, image_url, stock_status, is_featured, is_active, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [item + (now_stamp(),) for item in DEFAULT_PRODUCTS])
+    if not query_one("SELECT COUNT(*) AS total FROM testimonials")["total"]:
+        executemany("INSERT INTO testimonials (customer_name, title, message, tag, is_approved, created_at) VALUES (?, ?, ?, ?, ?, ?)", [item + (now_stamp(),) for item in DEFAULT_TESTIMONIALS])
 
 
 def ensure_initialized():
@@ -238,9 +295,43 @@ def list_services(include_inactive=False):
     return query_all(f"SELECT * FROM services {clause} ORDER BY is_featured DESC, sort_order ASC, id DESC")
 
 
+def group_services(services):
+    order = ["Braids", "Locs", "Children styles", "Natural hair care", "Treatments", "Bridal and events"]
+    grouped = []
+    for category in order:
+        items = [service for service in services if service["category"] == category]
+        if items:
+            grouped.append({"name": category, "services": items})
+    for category in sorted({service["category"] for service in services} - set(order)):
+        grouped.append({"name": category, "services": [service for service in services if service["category"] == category]})
+    return grouped
+
+
 def list_products(include_inactive=False):
     clause = "" if include_inactive else "WHERE is_active = 1"
     return query_all(f"SELECT * FROM products {clause} ORDER BY is_featured DESC, sort_order ASC, id DESC")
+
+
+def list_testimonials(include_pending=False):
+    clause = "" if include_pending else "WHERE is_approved = 1"
+    return query_all(f"SELECT * FROM testimonials {clause} ORDER BY is_approved DESC, id DESC")
+
+
+def list_reviews(include_pending=False):
+    clause = "" if include_pending else "WHERE is_approved = 1"
+    return query_all(f"SELECT * FROM reviews {clause} ORDER BY is_approved DESC, id DESC")
+
+
+def customer_has_interacted(phone, email):
+    phone = (phone or "").strip()
+    email = (email or "").strip().lower()
+    if phone:
+        if query_one("SELECT id FROM inquiries WHERE phone = ? LIMIT 1", (phone,)):
+            return True
+    if email:
+        if query_one("SELECT id FROM inquiries WHERE lower(email) = ? LIMIT 1", (email,)):
+            return True
+    return False
 
 
 def admin_user():
@@ -264,7 +355,17 @@ def checkbox_value(name):
 
 @app.route("/")
 def home():
-    return render_template("home.html", services=list_services(), products=list_products())
+    services = list_services()
+    products = list_products()
+    return render_template(
+        "home.html",
+        services=services,
+        service_groups=group_services(services),
+        products=products,
+        testimonials=list_testimonials(),
+        reviews=list_reviews(),
+        review_items={"services": services, "products": products},
+    )
 
 
 @app.route("/inquire", methods=["POST"])
@@ -272,6 +373,50 @@ def inquire():
     execute("INSERT INTO inquiries (name, phone, email, interest, message, status, created_at) VALUES (?, ?, ?, ?, ?, 'New', ?)", (request.form.get("name", "").strip(), request.form.get("phone", "").strip(), request.form.get("email", "").strip(), request.form.get("interest", "").strip(), request.form.get("message", "").strip(), now_stamp()))
     flash("Thank you. Grace will follow up with you shortly.", "success")
     return redirect(url_for("home") + "#booking")
+
+
+@app.route("/testimonials", methods=["POST"])
+def submit_testimonial():
+    name = request.form.get("customer_name", "").strip()
+    message = request.form.get("message", "").strip()
+    if not name or not message:
+        flash("Please add your name and testimony before submitting.", "error")
+        return redirect(url_for("home") + "#testimonials")
+    execute(
+        "INSERT INTO testimonials (customer_name, title, message, tag, is_approved, created_at) VALUES (?, ?, ?, ?, 0, ?)",
+        (name, request.form.get("title", "").strip(), message, request.form.get("tag", "").strip(), now_stamp()),
+    )
+    flash("Thank you. Your testimony has been received and will appear after review.", "success")
+    return redirect(url_for("home") + "#testimonials")
+
+
+@app.route("/reviews", methods=["POST"])
+def submit_review():
+    name = request.form.get("customer_name", "").strip()
+    phone = request.form.get("phone", "").strip()
+    email = request.form.get("email", "").strip()
+    item_type = request.form.get("item_type", "").strip()
+    item_id = int(request.form.get("item_id") or 0)
+    message = request.form.get("message", "").strip()
+    rating = max(1, min(5, int(request.form.get("rating") or 5)))
+    if not name or not message or item_type not in {"service", "product"} or not item_id:
+        flash("Please complete the review form before submitting.", "error")
+        return redirect(url_for("home") + "#reviews")
+    if not customer_has_interacted(phone, email):
+        flash("Please use the phone or email from a previous booking or order request so we can verify your review.", "warning")
+        return redirect(url_for("home") + "#reviews")
+    table = "services" if item_type == "service" else "products"
+    name_column = "title" if item_type == "service" else "name"
+    item = query_one(f"SELECT {name_column} AS item_name FROM {table} WHERE id = ?", (item_id,))
+    if not item:
+        flash("We could not find the selected service or product.", "error")
+        return redirect(url_for("home") + "#reviews")
+    execute(
+        "INSERT INTO reviews (customer_name, phone, email, item_type, item_id, item_name, rating, message, is_approved, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
+        (name, phone, email, item_type, item_id, item["item_name"], rating, message, now_stamp()),
+    )
+    flash("Thank you. Your review has been submitted and will appear after approval.", "success")
+    return redirect(url_for("home") + "#reviews")
 
 
 @app.route("/grace-admin/login", methods=["GET", "POST"])
@@ -297,13 +442,21 @@ def admin_logout():
 @app.route("/grace-admin")
 @admin_required
 def admin_dashboard():
-    return render_template("admin.html", admin=admin_user(), services=list_services(True), products=list_products(True), inquiries=query_all("SELECT * FROM inquiries ORDER BY id DESC LIMIT 20"))
+    return render_template(
+        "admin.html",
+        admin=admin_user(),
+        services=list_services(True),
+        products=list_products(True),
+        inquiries=query_all("SELECT * FROM inquiries ORDER BY id DESC LIMIT 20"),
+        testimonials=list_testimonials(True),
+        reviews=list_reviews(True),
+    )
 
 
 @app.route("/grace-admin/settings", methods=["POST"])
 @admin_required
 def update_settings():
-    for key in ["studio_name", "tagline", "hero_title", "hero_subtitle", "address", "phone", "whatsapp", "instagram", "opening_hours", "booking_note"]:
+    for key in ["studio_name", "tagline", "hero_title", "hero_subtitle", "address", "email", "phone", "whatsapp", "instagram", "opening_hours", "booking_note"]:
         if USE_POSTGRES:
             execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", (key, request.form.get(key, "").strip()))
         else:
@@ -364,6 +517,38 @@ def update_inquiry_status(item_id):
     execute("UPDATE inquiries SET status = ? WHERE id = ?", (request.form.get("status", "New"), item_id))
     flash("Inquiry status updated.", "success")
     return redirect(url_for("admin_dashboard") + "#inquiries")
+
+
+@app.route("/grace-admin/testimonials/<int:item_id>/status", methods=["POST"])
+@admin_required
+def update_testimonial_status(item_id):
+    execute("UPDATE testimonials SET is_approved = ? WHERE id = ?", (checkbox_value("is_approved"), item_id))
+    flash("Testimony visibility updated.", "success")
+    return redirect(url_for("admin_dashboard") + "#testimonials")
+
+
+@app.route("/grace-admin/testimonials/<int:item_id>/delete", methods=["POST"])
+@admin_required
+def delete_testimonial(item_id):
+    execute("DELETE FROM testimonials WHERE id = ?", (item_id,))
+    flash("Testimony removed.", "success")
+    return redirect(url_for("admin_dashboard") + "#testimonials")
+
+
+@app.route("/grace-admin/reviews/<int:item_id>/status", methods=["POST"])
+@admin_required
+def update_review_status(item_id):
+    execute("UPDATE reviews SET is_approved = ? WHERE id = ?", (checkbox_value("is_approved"), item_id))
+    flash("Review visibility updated.", "success")
+    return redirect(url_for("admin_dashboard") + "#reviews")
+
+
+@app.route("/grace-admin/reviews/<int:item_id>/delete", methods=["POST"])
+@admin_required
+def delete_review(item_id):
+    execute("DELETE FROM reviews WHERE id = ?", (item_id,))
+    flash("Review removed.", "success")
+    return redirect(url_for("admin_dashboard") + "#reviews")
 
 
 if __name__ == "__main__":

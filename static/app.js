@@ -25,3 +25,40 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
     if (!window.confirm(form.dataset.confirm)) event.preventDefault();
   });
 });
+const reviewType = document.querySelector("[data-review-type]");
+const reviewItem = document.querySelector("[data-review-item]");
+function syncReviewItems() {
+  if (!reviewType || !reviewItem) return;
+  const type = reviewType.value;
+  let firstVisible = "";
+  reviewItem.querySelectorAll("option").forEach((option) => {
+    const matches = option.dataset.type === type;
+    option.hidden = !matches;
+    option.disabled = !matches;
+    if (matches && !firstVisible) firstVisible = option.value;
+  });
+  if (!reviewItem.selectedOptions[0] || reviewItem.selectedOptions[0].disabled) {
+    reviewItem.value = firstVisible;
+  }
+}
+if (reviewType && reviewItem) {
+  reviewType.addEventListener("change", syncReviewItems);
+  syncReviewItems();
+}
+document.querySelectorAll("[data-service-browser]").forEach((browser) => {
+  const tabs = browser.querySelectorAll("[data-service-tab]");
+  const panels = browser.querySelectorAll("[data-service-panel]");
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.serviceTab;
+      tabs.forEach((item) => {
+        const active = item === tab;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      panels.forEach((panel) => {
+        panel.classList.toggle("active", panel.dataset.servicePanel === target);
+      });
+    });
+  });
+});
