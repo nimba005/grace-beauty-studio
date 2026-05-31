@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Admin | Grace Beauty Studio</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='reviews.css') }}"><script defer src="{{ url_for('static', filename='app.js') }}"></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Admin | Grace Beauty Studio</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='reviews.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}"><script defer src="{{ url_for('static', filename='app.js') }}"></script></head>
 <body class="admin-body">
   <aside class="admin-sidebar"><a class="brand" href="/"><span>G</span><strong>Grace Studio</strong></a><nav><a href="#studio">Studio</a><a href="#services">Services</a><a href="#products">Products</a><a href="#testimonials">Testimonials</a><a href="#reviews">Reviews</a><a href="#inquiries">Inquiries</a></nav><a class="button soft" href="{{ url_for('admin_logout') }}">Sign out</a></aside>
   <main class="admin-main">

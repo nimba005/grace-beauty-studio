@@ -1,0 +1,107 @@
+html{overflow-x:hidden}
+body{min-width:320px;overflow-x:hidden}
+.site-header{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center}
+.site-header .brand{min-width:0}
+.site-header .brand strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-header nav{justify-content:center;min-width:0}
+.site-header nav a,.admin-sidebar nav a{white-space:nowrap}
+.header-action{white-space:nowrap}
+.section-block,.booking-section{overflow:hidden}
+.hero-section{isolation:isolate}
+.hero-content{min-width:0}
+.hero-actions .button{display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.intro-strip article,.beauty-card,.service-row,.review-card,.testimonial-card,.admin-card{min-width:0}
+.product-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.booking-form button,.cms-form button,.review-form button{min-height:44px}
+.admin-table article,.inquiry-list article,.moderation-list article{min-width:0}
+.admin-table article>div,.inquiry-list article>div,.moderation-list article>div{min-width:0}
+.admin-table strong,.inquiry-list strong,.moderation-list strong{overflow-wrap:anywhere}
+
+@media (min-width:1400px){
+  .hero-section,.section-block,.booking-section,.site-footer{padding-left:max(70px,calc((100vw - 1280px)/2));padding-right:max(70px,calc((100vw - 1280px)/2))}
+  .intro-strip{max-width:1280px}
+}
+
+@media (max-width:1180px){
+  .site-header{grid-template-columns:1fr auto;gap:12px}
+  .site-header nav{grid-column:1/-1;order:3;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;scrollbar-width:none}
+  .site-header nav::-webkit-scrollbar{display:none}
+  .hero-section{grid-template-columns:minmax(0,1fr) minmax(280px,.82fr);gap:30px}
+  .card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .review-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .review-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-body{grid-template-columns:220px minmax(0,1fr)}
+  .admin-main{padding:22px}
+}
+
+@media (max-width:980px){
+  .site-header{position:sticky;grid-template-columns:1fr auto;padding:12px 18px}
+  .site-header nav{width:100%}
+  .site-header nav a{padding:9px 12px;background:rgba(255,255,255,.62)}
+  .hero-section{min-height:auto;grid-template-columns:1fr;padding-top:26px}
+  .hero-media{order:2;min-height:430px;width:100%}
+  .hero-content{order:1}
+  .hero-card{order:3;position:static;width:100%;margin:0}
+  .intro-strip{width:calc(100% - 36px);margin:18px auto 0;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .split-heading{grid-template-columns:1fr;gap:10px}
+  .service-browser{grid-template-columns:1fr}
+  .service-tabs{position:static;display:flex;align-items:center;overflow-x:auto;scroll-snap-type:x proximity}
+  .service-tab{scroll-snap-align:start;flex:0 0 auto}
+  .booking-section{grid-template-columns:1fr}
+  .admin-body{display:block}
+  .admin-sidebar{position:sticky;top:0;z-index:30;height:auto;padding:14px 18px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+  .admin-sidebar nav{grid-column:1/-1;display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;scrollbar-width:none}
+  .admin-sidebar nav::-webkit-scrollbar{display:none}
+  .admin-main{padding:18px}
+  .admin-topbar{align-items:flex-start}
+}
+
+@media (max-width:760px){
+  .site-header{grid-template-columns:1fr;align-items:stretch}
+  .site-header .brand{justify-content:center}
+  .site-header nav{justify-content:flex-start}
+  .header-action{width:100%;text-align:center}
+  h1{font-size:clamp(2.25rem,13vw,3.6rem);line-height:1}
+  .section-heading h2,.booking-section h2{font-size:clamp(1.65rem,9vw,2.5rem)}
+  .hero-media{min-height:340px}
+  .hero-actions{display:grid;grid-template-columns:1fr}
+  .intro-strip{grid-template-columns:1fr}
+  .card-grid,.product-grid,.review-list,.review-form,.booking-form,.cms-form{grid-template-columns:1fr}
+  .service-row{grid-template-columns:1fr}
+  .service-row img{width:100%;height:240px}
+  .service-row>a{width:100%;text-align:center}
+  .card-meta{align-items:flex-start;flex-direction:column}
+  .testimonial-carousel{overflow:visible;mask-image:none}
+  .testimonial-track{animation:none;width:100%;display:grid;grid-template-columns:1fr}
+  .testimonial-track .testimonial-card[aria-hidden="true"]{display:none}
+  .testimonial-card{width:100%;min-height:0;border-radius:48px 48px 8px 8px}
+  .testimonial-card p{-webkit-line-clamp:unset}
+  .review-form{padding:18px}
+  .booking-section{padding-top:42px;padding-bottom:42px}
+  .contact-list span{width:100%;text-align:center}
+  .site-footer{display:grid;text-align:center}
+  .site-footer a{justify-self:center}
+  .admin-topbar{display:grid}
+  .admin-topbar .button{width:100%;text-align:center}
+  .admin-card{padding:18px}
+  .admin-table article,.inquiry-list article,.moderation-list article{grid-template-columns:1fr}
+  .admin-table img{width:100%;height:190px}
+  .moderation-list form{width:100%}
+  .moderation-list button,.inquiry-list button{width:100%}
+}
+
+@media (max-width:460px){
+  .site-header,.admin-sidebar{padding-left:14px;padding-right:14px}
+  .brand span{width:38px;height:38px}
+  .brand strong{font-size:.95rem}
+  .site-header nav a,.admin-sidebar nav a{font-size:.9rem;padding:8px 10px}
+  .section-block,.booking-section{padding-left:14px;padding-right:14px}
+  .hero-section{padding-left:14px;padding-right:14px}
+  .hero-media{min-height:280px}
+  .intro-strip{width:calc(100% - 28px)}
+  .service-tab{min-width:145px}
+  .service-row img{height:210px}
+  .review-form,.booking-form,.cms-form{padding:16px}
+  .login-panel{padding:22px}
+  .admin-main{padding:14px}
+}
