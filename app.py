@@ -226,6 +226,25 @@ DEFAULT_TESTIMONIALS = [
     ("Mercy", "The shea butter is now a routine", "The product feels rich without being heavy, and my skin stays moisturized for longer.", "Natural care", 1),
     ("Njeri", "Professional and warm", "Booking was simple, the advice was honest, and the service felt very personal.", "Salon experience", 1),
 ]
+SERVICE_IMAGE_PATHS = {
+    "Knotless Braids": "/static/images/knotless%20braids.jpeg",
+    "Box Braids": "/static/images/box%20braids.jpeg",
+    "Fulani Braids": "/static/images/fulani%20braids.jpeg",
+    "Goddess Braids": "/static/images/Godes%20Braids.jpeg",
+    "Bridal & Event Styling": "/static/images/Bridal%20%26%20Event%20Styling.jpg",
+    "Traditional Bridal Braids": "/static/images/Traditional%20Bridal%20Braids.jpeg",
+    "Girls Beaded Braids": "/static/images/Girls%20Beaded%20Braids.jpeg",
+    "School Lines": "/static/images/School%20Lines.jpeg",
+    "Butterfly Locs": "/static/images/butterfly%20locks.jpg",
+    "Starter Locs": "/static/images/starter%20locks.jpeg",
+    "Loc Retwist": "/static/images/lock%20retwists.jpeg",
+    "Natural Hair Care": "/static/images/Natural%20Hair%20Care.jpegp",
+    "Flat Twists": "/static/images/Flat%20Twists.jpeg",
+    "Twist Out Prep": "/static/images/Twist%20Out%20Prep.jpg",
+    "Silk Press & Treatment": "/static/images/Silk%20Press%20%26%20Treatment.jpeg",
+    "Deep Treatment & Steam": "/static/images/Deep%20Treatment%20%26%20Steam.jpeg",
+    "Silk Press & Trim": "/static/images/Silk%20Press%20%26%20Trim.jpeg",
+}
 
 
 def now_stamp():
@@ -263,6 +282,8 @@ def seed_data():
     for item in AFRICAN_SERVICE_CATALOG:
         if not query_one("SELECT id FROM services WHERE title = ?", (item[0],)):
             execute("INSERT INTO services (title, category, description, price, duration, image_url, is_featured, is_active, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", item + (now_stamp(),))
+    for title, image_url in SERVICE_IMAGE_PATHS.items():
+        execute("UPDATE services SET image_url = ?, updated_at = ? WHERE title = ?", (image_url, now_stamp(), title))
     if not query_one("SELECT COUNT(*) AS total FROM products")["total"]:
         executemany("INSERT INTO products (name, category, description, price, size, image_url, stock_status, is_featured, is_active, sort_order, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [item + (now_stamp(),) for item in DEFAULT_PRODUCTS])
     if not query_one("SELECT COUNT(*) AS total FROM testimonials")["total"]:
