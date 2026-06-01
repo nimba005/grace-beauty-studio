@@ -10,10 +10,15 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
-<body>
+<body class="public-site">
   <header class="site-header">
     <a class="brand" href="#top"><span>G</span><strong>{{ settings.studio_name }}</strong></a>
-    <nav aria-label="Main navigation"><a href="#services">Services</a><a href="#products">Products</a><a href="#testimonials">Testimonials</a><a href="#booking">Book</a></nav>
+    <nav class="main-nav" aria-label="Main navigation">
+      <a class="nav-pill is-active" href="#services" data-nav-section="services" aria-current="true">Services</a>
+      <a class="nav-pill" href="#products" data-nav-section="products">Products</a>
+      <a class="nav-pill" href="#testimonials" data-nav-section="testimonials">Testimonials</a>
+      <a class="nav-pill" href="#booking" data-nav-section="booking">Book</a>
+    </nav>
     <a class="header-action" href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20would%20like%20to%20book%20or%20order." target="_blank" rel="noreferrer">WhatsApp</a>
   </header>
   <main id="top">
@@ -55,7 +60,7 @@
         <div class="testimonial-track">
           {% for testimonial in testimonials %}
             <article class="testimonial-card">
-              <div class="testimonial-photo"><img src="{{ loop.cycle('https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=420&q=85', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=420&q=85', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=420&q=85', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=420&q=85') }}" alt="{{ testimonial.customer_name }}"></div>
+              <div class="testimonial-photo"><img src="{{ loop.cycle('/static/images/knotless%20braids.jpeg', '/static/images/fulani%20braids.jpeg', '/static/images/Girls%20Beaded%20Braids.jpeg', '/static/images/Bridal%20%26%20Event%20Styling.jpg') }}" alt="{{ testimonial.customer_name }}"></div>
               <span>{{ testimonial.tag or 'Grace experience' }}</span>
               <h3>{{ testimonial.title or 'Beautiful experience' }}</h3>
               <p>"{{ testimonial.message }}"</p>
@@ -64,7 +69,7 @@
           {% endfor %}
           {% for testimonial in testimonials %}
             <article class="testimonial-card" aria-hidden="true">
-              <div class="testimonial-photo"><img src="{{ loop.cycle('https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=420&q=85', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=420&q=85', 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=420&q=85', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=420&q=85') }}" alt=""></div>
+              <div class="testimonial-photo"><img src="{{ loop.cycle('/static/images/knotless%20braids.jpeg', '/static/images/fulani%20braids.jpeg', '/static/images/Girls%20Beaded%20Braids.jpeg', '/static/images/Bridal%20%26%20Event%20Styling.jpg') }}" alt=""></div>
               <span>{{ testimonial.tag or 'Grace experience' }}</span>
               <h3>{{ testimonial.title or 'Beautiful experience' }}</h3>
               <p>"{{ testimonial.message }}"</p>

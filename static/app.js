@@ -8,6 +8,17 @@ function fillFields(prefix, data) {
   });
   window.location.hash = prefix === "service" ? "services" : "products";
 }
+const siteHeader = document.querySelector(".site-header");
+function syncHeaderHeight() {
+  if (!siteHeader) return;
+  document.documentElement.style.setProperty("--site-header-height", `${siteHeader.offsetHeight}px`);
+  document.body.style.setProperty("--site-header-height", `${siteHeader.offsetHeight}px`);
+}
+if (siteHeader) {
+  syncHeaderHeight();
+  window.addEventListener("resize", syncHeaderHeight);
+  window.addEventListener("load", syncHeaderHeight);
+}
 document.addEventListener("click", (event) => {
   const serviceButton = event.target.closest("[data-edit-service]");
   if (serviceButton) {
@@ -62,3 +73,31 @@ document.querySelectorAll("[data-service-browser]").forEach((browser) => {
     });
   });
 });
+const navLinks = Array.from(document.querySelectorAll("[data-nav-section]"));
+const observedSections = navLinks
+  .map((link) => document.getElementById(link.dataset.navSection))
+  .filter(Boolean);
+function setActiveNav(sectionId) {
+  navLinks.forEach((link) => {
+    const active = link.dataset.navSection === sectionId;
+    link.classList.toggle("is-active", active);
+    if (active) link.setAttribute("aria-current", "true");
+    else link.removeAttribute("aria-current");
+  });
+}
+if (navLinks.length && observedSections.length) {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visible) setActiveNav(visible.target.id);
+    },
+    { rootMargin: "-35% 0px -48% 0px", threshold: [0.08, 0.18, 0.32, 0.5] }
+  );
+  observedSections.forEach((section) => observer.observe(section));
+  window.addEventListener("hashchange", () => {
+    const sectionId = window.location.hash.replace("#", "");
+    if (sectionId) setActiveNav(sectionId);
+  });
+}

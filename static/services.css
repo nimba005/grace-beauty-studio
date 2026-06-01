@@ -1,6 +1,6 @@
 .hero-media{background:linear-gradient(rgba(45,24,39,.08),rgba(45,24,39,.22)),url("/static/images/grace%20workstation.png") center/cover;min-height:min(74vh,660px)}
 .service-browser{display:grid;grid-template-columns:280px minmax(0,1fr);gap:20px;align-items:start}
-.service-tabs{position:sticky;top:92px;display:grid;gap:10px;padding:12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.82);box-shadow:0 18px 42px rgba(45,24,39,.08);backdrop-filter:blur(14px)}
+.service-tabs{position:sticky;top:calc(var(--site-header-height,92px) + 14px);display:grid;gap:10px;padding:12px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.82);box-shadow:0 18px 42px rgba(45,24,39,.08);backdrop-filter:blur(14px)}
 .service-tab{width:100%;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid transparent;border-radius:999px;background:#fff;color:var(--ink);box-shadow:none;text-align:left}
 .service-tab span{font-weight:950}
 .service-tab small{min-width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:var(--blush);color:var(--plum);font-weight:950}
