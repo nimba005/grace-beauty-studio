@@ -19,8 +19,9 @@
 .cart-item button{background:#fff;color:#9f1239;border:1px solid #fecdd3;box-shadow:none;padding:9px 12px}
 .cart-booking-form{grid-template-columns:1fr;padding:16px}
 .book-contact-widget{position:fixed;right:18px;bottom:18px;z-index:1100;display:grid;justify-items:end;gap:12px}
-.book-contact-fab{position:relative;width:64px;height:64px;padding:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--plum),var(--rose));box-shadow:0 18px 38px rgba(123,37,92,.34),0 0 0 8px rgba(255,231,239,.78)}
+.book-contact-fab{position:relative;width:72px;min-height:88px;padding:0 0 4px;border-radius:999px;display:grid;place-items:center;background:linear-gradient(180deg,#fff,var(--blush));box-shadow:0 18px 38px rgba(123,37,92,.24),0 0 0 8px rgba(255,231,239,.78);color:var(--plum)}
 .book-contact-fab span{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#fff;color:var(--plum);font-size:1.25rem;font-weight:950}
+.book-contact-fab small{font-size:.68rem;font-weight:950;line-height:1;color:var(--plum)}
 .book-contact-fab:after{content:"";position:absolute;width:78px;height:78px;border:1px solid rgba(123,37,92,.22);border-radius:50%;animation:assistant-pulse 2.4s ease-out infinite}
 @keyframes assistant-pulse{0%{transform:scale(.82);opacity:.7}100%{transform:scale(1.25);opacity:0}}
 .book-contact-panel{width:min(380px,calc(100vw - 28px));padding:16px;border:1px solid rgba(123,37,92,.14);border-radius:18px;background:rgba(255,255,255,.97);box-shadow:0 24px 70px rgba(45,24,39,.24);backdrop-filter:blur(18px);display:grid;gap:12px;transform-origin:bottom right}
@@ -51,4 +52,4 @@
 .contact-actions a span{color:var(--plum)}
 .contact-actions a small{color:var(--muted)}
 @media(max-width:860px){.compact-booking{grid-template-columns:1fr}}
-@media(max-width:680px){.cart-panel{width:100%;border-left:0}.book-contact-widget{right:14px;bottom:14px}.book-contact-fab{width:58px;height:58px}.book-contact-fab span{width:38px;height:38px}.book-contact-panel{width:calc(100vw - 28px)}.quick-actions{grid-template-columns:repeat(2,1fr)}.quick-actions a{min-height:62px}.assistant-chat form{grid-template-columns:1fr}.assistant-chat button{width:100%}}
+@media(max-width:680px){.cart-panel{width:100%;border-left:0}.book-contact-widget{right:14px;bottom:14px}.book-contact-fab{width:66px;min-height:82px}.book-contact-fab span{width:38px;height:38px}.book-contact-panel{width:calc(100vw - 28px)}.quick-actions{grid-template-columns:repeat(2,1fr)}.quick-actions a{min-height:62px}.assistant-chat form{grid-template-columns:1fr}.assistant-chat button{width:100%}}
