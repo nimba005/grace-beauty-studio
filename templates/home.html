@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
-<body class="public-site">
+<body class="public-site" data-customer-auth="{{ 'signed-in' if customer else 'guest' }}">
   <header class="site-header">
     <a class="brand" href="#top"><span>G</span><strong>{{ settings.studio_name }}</strong></a>
     <nav class="main-nav" aria-label="Main navigation">
@@ -20,7 +20,10 @@
       <a class="nav-pill" href="#testimonials" data-nav-section="testimonials">Testimonials</a>
       <a class="nav-pill" href="#booking" data-nav-section="booking">Book</a>
     </nav>
-    <button class="header-action cart-toggle" type="button" data-cart-open>Cart <span data-cart-count>0</span></button>
+    <div class="header-actions">
+      <button class="header-action account-toggle" type="button" data-auth-open>{{ customer.name if customer else 'Sign in' }}</button>
+      <button class="header-action cart-toggle" type="button" data-cart-open>Cart <span data-cart-count>0</span></button>
+    </div>
   </header>
   <main id="top">
     {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}</div>{% endif %}{% endwith %}
@@ -89,7 +92,7 @@
         <button class="gated-open" type="button" data-gated-open="testimonial" hidden>Share a testimony</button>
         <form id="share-testimony" class="review-form gated-form" method="post" action="/testimonials" data-gated-form="testimonial" hidden>
           <div><p class="eyebrow">Share a testimony</p><h3>Your words help another customer choose with confidence.</h3></div>
-          <label>Name<input name="customer_name" required placeholder="Your name"></label>
+          <label>Name<input name="customer_name" required placeholder="Your name" value="{{ customer.name if customer else '' }}"></label>
           <label>Short title<input name="title" placeholder="Example: Soft finish, clean service"></label>
           <label>Tag<input name="tag" placeholder="Example: Protective styling"></label>
           <label class="wide">Testimony<textarea name="message" rows="4" required placeholder="Tell us what you loved about the service or product."></textarea></label>
@@ -108,9 +111,9 @@
         <button class="gated-open" type="button" data-gated-open="review" hidden>Leave a verified review</button>
         <form class="review-form gated-form" method="post" action="/reviews" data-gated-form="review" hidden>
           <div><p class="eyebrow">Leave a review</p><h3>Use the phone or email you used when booking or ordering.</h3></div>
-          <label>Name<input name="customer_name" required placeholder="Your name"></label>
-          <label>Phone used<input name="phone" placeholder="+254..."></label>
-          <label>Email used<input name="email" type="email" placeholder="Optional"></label>
+          <label>Name<input name="customer_name" required placeholder="Your name" value="{{ customer.name if customer else '' }}"></label>
+          <label>Phone used<input name="phone" placeholder="+254..." value="{{ customer.phone if customer else '' }}"></label>
+          <label>Email used<input name="email" type="email" placeholder="Optional" value="{{ customer.email if customer else '' }}"></label>
           <label>Rating<select name="rating"><option value="5">5 - Excellent</option><option value="4">4 - Very good</option><option value="3">3 - Good</option><option value="2">2 - Fair</option><option value="1">1 - Needs attention</option></select></label>
           <label>Review type<select name="item_type" data-review-type><option value="product">Product</option><option value="service">Service</option></select></label>
           <label>Product or service<select name="item_id" data-review-item>{% for product in review_items.products %}<option value="{{ product.id }}" data-type="product">{{ product.name }}</option>{% endfor %}{% for service in review_items.services %}<option value="{{ service.id }}" data-type="service" hidden>{{ service.title }}</option>{% endfor %}</select></label>
@@ -138,13 +141,57 @@
       <div class="cart-items" data-cart-items></div>
       <p class="cart-empty" data-cart-empty>No products or sessions selected yet.</p>
       <form class="booking-form cart-booking-form" data-booking-form>
-        <label>Name<input name="name" required placeholder="Your name"></label>
-        <label>Phone or WhatsApp<input name="phone" required placeholder="+254..."></label>
-        <label>Email<input name="email" type="email" placeholder="Optional"></label>
+        <label>Name<input name="name" required placeholder="Your name" value="{{ customer.name if customer else '' }}"></label>
+        <label>Phone or WhatsApp<input name="phone" required placeholder="+254..." value="{{ customer.phone if customer else '' }}"></label>
+        <label>Email<input name="email" type="email" placeholder="Optional" value="{{ customer.email if customer else '' }}"></label>
         <label class="wide">Message<textarea name="message" rows="3" placeholder="Preferred date, delivery location, or any notes."></textarea></label>
         <button type="submit">Submit booking</button>
       </form>
       <p class="cart-status" data-cart-status></p>
+    </div>
+  </aside>
+  <aside class="auth-drawer" data-auth-drawer aria-hidden="true">
+    <div class="auth-panel">
+      <header>
+        <div><p class="eyebrow">Customer account</p><h2>{{ 'Welcome back' if customer else 'Save your cart and sessions' }}</h2></div>
+        <button type="button" data-auth-close aria-label="Close account panel">Close</button>
+      </header>
+      {% if customer %}
+        <div class="account-card">
+          <span>{{ customer.name[:1]|upper }}</span>
+          <div><strong>{{ customer.name }}</strong><small>{{ customer.email }}</small></div>
+        </div>
+        <p class="auth-note">Your cart is saved to this account whenever you add or remove products and sessions.</p>
+        <button type="button" data-auth-logout>Sign out</button>
+      {% else %}
+        <div class="social-auth">
+          <button type="button" disabled>Continue with Google</button>
+          <button type="button" disabled>Continue with Apple</button>
+        </div>
+        <p class="auth-note">Social sign-in is ready for provider keys later. Email signup works now.</p>
+        <div class="auth-tabs" role="tablist" aria-label="Customer account actions">
+          <button type="button" class="active" data-auth-tab="signup">Create account</button>
+          <button type="button" data-auth-tab="login">Sign in</button>
+          <button type="button" data-auth-tab="guest">Guest</button>
+        </div>
+        <form class="auth-form active" data-auth-form="signup">
+          <label>Name<input name="name" required placeholder="Your name"></label>
+          <label>Email<input name="email" type="email" required placeholder="you@example.com"></label>
+          <label>Phone<input name="phone" placeholder="+254..."></label>
+          <label>Password<input name="password" type="password" required minlength="8" placeholder="At least 8 characters"></label>
+          <button type="submit">Create account</button>
+        </form>
+        <form class="auth-form" data-auth-form="login">
+          <label>Email<input name="email" type="email" required placeholder="you@example.com"></label>
+          <label>Password<input name="password" type="password" required placeholder="Your password"></label>
+          <button type="submit">Sign in</button>
+        </form>
+        <div class="auth-form guest-card" data-auth-form="guest">
+          <p>You can continue as a guest. Your cart stays on this device, and reviews can still be verified using the phone or email from a booking.</p>
+          <button type="button" data-auth-close>Continue as guest</button>
+        </div>
+        <p class="auth-status" data-auth-status></p>
+      {% endif %}
     </div>
   </aside>
   <section class="book-contact-widget" data-book-widget>

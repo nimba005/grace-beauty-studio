@@ -86,6 +86,17 @@ def execute(sql, params=()):
     db.commit()
 
 
+def execute_insert(sql, params=()):
+    db = get_db()
+    if USE_POSTGRES:
+        row = db.execute(adapt_sql(sql) + " RETURNING id", params).fetchone()
+        db.commit()
+        return row["id"] if row else None
+    cur = db.execute(sql, params)
+    db.commit()
+    return cur.lastrowid
+
+
 def executemany(sql, params):
     db = get_db()
     if USE_POSTGRES:
@@ -151,6 +162,7 @@ CREATE TABLE IF NOT EXISTS products (
 );
 CREATE TABLE IF NOT EXISTS inquiries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 0,
     name TEXT NOT NULL,
     phone TEXT NOT NULL DEFAULT '',
     email TEXT NOT NULL DEFAULT '',
@@ -159,8 +171,24 @@ CREATE TABLE IF NOT EXISTS inquiries (
     status TEXT NOT NULL DEFAULT 'New',
     created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS customer_users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    phone TEXT NOT NULL DEFAULT '',
+    password_hash TEXT NOT NULL,
+    auth_provider TEXT NOT NULL DEFAULT 'email',
+    created_at TEXT NOT NULL,
+    last_login TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS customer_carts (
+    user_id INTEGER PRIMARY KEY,
+    cart_json TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS testimonials (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 0,
     customer_name TEXT NOT NULL,
     title TEXT NOT NULL DEFAULT '',
     message TEXT NOT NULL DEFAULT '',
@@ -170,6 +198,7 @@ CREATE TABLE IF NOT EXISTS testimonials (
 );
 CREATE TABLE IF NOT EXISTS reviews (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL DEFAULT 0,
     customer_name TEXT NOT NULL,
     phone TEXT NOT NULL DEFAULT '',
     email TEXT NOT NULL DEFAULT '',
@@ -255,6 +284,20 @@ def now_stamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
+def ensure_column(table, column, definition):
+    if USE_POSTGRES:
+        exists = query_one(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = ? AND column_name = ?",
+            (table, column),
+        )
+        if not exists:
+            execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        return
+    exists = any(row["name"] == column for row in get_db().execute(f"PRAGMA table_info({table})").fetchall())
+    if not exists:
+        execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
 def init_db():
     db = get_db()
     if USE_POSTGRES:
@@ -262,6 +305,9 @@ def init_db():
     else:
         db.executescript(SCHEMA)
     db.commit()
+    ensure_column("inquiries", "user_id", "INTEGER NOT NULL DEFAULT 0")
+    ensure_column("testimonials", "user_id", "INTEGER NOT NULL DEFAULT 0")
+    ensure_column("reviews", "user_id", "INTEGER NOT NULL DEFAULT 0")
     seed_data()
 
 
@@ -312,7 +358,7 @@ def get_settings():
 
 @app.context_processor
 def inject_globals():
-    return {"settings": get_settings()}
+    return {"settings": get_settings(), "customer": current_customer()}
 
 
 def list_services(include_inactive=False):
@@ -350,6 +396,10 @@ def list_reviews(include_pending=False):
 def customer_has_interacted(phone, email):
     phone = (phone or "").strip()
     email = (email or "").strip().lower()
+    user_id = session.get("customer_id")
+    if user_id:
+        if query_one("SELECT id FROM inquiries WHERE user_id = ? LIMIT 1", (user_id,)):
+            return True
     if phone:
         if query_one("SELECT id FROM inquiries WHERE phone = ? LIMIT 1", (phone,)):
             return True
@@ -357,6 +407,38 @@ def customer_has_interacted(phone, email):
         if query_one("SELECT id FROM inquiries WHERE lower(email) = ? LIMIT 1", (email,)):
             return True
     return False
+
+
+def current_customer():
+    customer_id = session.get("customer_id")
+    if not customer_id:
+        return None
+    return query_one("SELECT id, name, email, phone, auth_provider, created_at, last_login FROM customer_users WHERE id = ?", (customer_id,))
+
+
+def save_customer_cart(user_id, cart):
+    cart_json = json.dumps(cart if isinstance(cart, list) else [])
+    if USE_POSTGRES:
+        execute(
+            "INSERT INTO customer_carts (user_id, cart_json, updated_at) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET cart_json = EXCLUDED.cart_json, updated_at = EXCLUDED.updated_at",
+            (user_id, cart_json, now_stamp()),
+        )
+    else:
+        execute(
+            "INSERT OR REPLACE INTO customer_carts (user_id, cart_json, updated_at) VALUES (?, ?, ?)",
+            (user_id, cart_json, now_stamp()),
+        )
+
+
+def load_customer_cart(user_id):
+    row = query_one("SELECT cart_json FROM customer_carts WHERE user_id = ?", (user_id,))
+    if not row:
+        return []
+    try:
+        cart = json.loads(row["cart_json"])
+        return cart if isinstance(cart, list) else []
+    except ValueError:
+        return []
 
 
 def admin_user():
@@ -393,6 +475,69 @@ def home():
     )
 
 
+@app.route("/customer/signup", methods=["POST"])
+def customer_signup():
+    payload = request.get_json(silent=True) or request.form
+    name = (payload.get("name") or "").strip()
+    email = (payload.get("email") or "").strip().lower()
+    phone = (payload.get("phone") or "").strip()
+    password = payload.get("password") or ""
+    cart = payload.get("cart") or []
+    if not name or not email or not password:
+        return jsonify({"ok": False, "error": "Please add your name, email, and password."}), 400
+    if len(password) < 8:
+        return jsonify({"ok": False, "error": "Use at least 8 characters for your password."}), 400
+    if query_one("SELECT id FROM customer_users WHERE email = ?", (email,)):
+        return jsonify({"ok": False, "error": "An account with that email already exists. Please sign in instead."}), 409
+    user_id = execute_insert(
+        "INSERT INTO customer_users (name, email, phone, password_hash, auth_provider, created_at, last_login) VALUES (?, ?, ?, ?, 'email', ?, ?)",
+        (name, email, phone, generate_password_hash(password), now_stamp(), now_stamp()),
+    )
+    session["customer_id"] = user_id
+    save_customer_cart(user_id, cart)
+    return jsonify({"ok": True, "message": f"Welcome, {name}. Your account is ready.", "customer": current_customer(), "cart": load_customer_cart(user_id)})
+
+
+@app.route("/customer/login", methods=["POST"])
+def customer_login():
+    payload = request.get_json(silent=True) or request.form
+    email = (payload.get("email") or "").strip().lower()
+    password = payload.get("password") or ""
+    cart = payload.get("cart") or []
+    user = query_one("SELECT * FROM customer_users WHERE email = ?", (email,))
+    if not user or not check_password_hash(user["password_hash"], password):
+        return jsonify({"ok": False, "error": "Invalid email or password."}), 401
+    session["customer_id"] = user["id"]
+    execute("UPDATE customer_users SET last_login = ? WHERE id = ?", (now_stamp(), user["id"]))
+    saved_cart = load_customer_cart(user["id"])
+    merged = saved_cart[:]
+    existing = {f"{item.get('type')}:{item.get('id')}" for item in merged}
+    for item in cart if isinstance(cart, list) else []:
+        key = f"{item.get('type')}:{item.get('id')}"
+        if key not in existing:
+            merged.append(item)
+            existing.add(key)
+    save_customer_cart(user["id"], merged)
+    return jsonify({"ok": True, "message": "You are signed in. Your saved cart is ready.", "customer": current_customer(), "cart": merged})
+
+
+@app.route("/customer/logout", methods=["POST"])
+def customer_logout():
+    session.pop("customer_id", None)
+    return jsonify({"ok": True, "message": "You have been signed out."})
+
+
+@app.route("/customer/cart", methods=["GET", "POST"])
+def customer_cart():
+    customer = current_customer()
+    if not customer:
+        return jsonify({"ok": False, "guest": True, "cart": []}), 401
+    if request.method == "POST":
+        payload = request.get_json(silent=True) or {}
+        save_customer_cart(customer["id"], payload.get("cart") or [])
+    return jsonify({"ok": True, "customer": customer, "cart": load_customer_cart(customer["id"])})
+
+
 @app.route("/inquire", methods=["POST"])
 def inquire():
     payload = request.get_json(silent=True) or request.form
@@ -409,7 +554,9 @@ def inquire():
             return jsonify({"ok": False, "error": "Please add your name and phone or WhatsApp number."}), 400
         flash("Please add your name and phone or WhatsApp number.", "error")
         return redirect(url_for("home") + "#booking")
-    execute("INSERT INTO inquiries (name, phone, email, interest, message, status, created_at) VALUES (?, ?, ?, ?, ?, 'New', ?)", (name, phone, email, interest, message, now_stamp()))
+    customer = current_customer()
+    user_id = customer["id"] if customer else 0
+    execute("INSERT INTO inquiries (user_id, name, phone, email, interest, message, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'New', ?)", (user_id, name, phone, email, interest, message, now_stamp()))
     if request.is_json:
         return jsonify({"ok": True, "message": "Thank you. Grace will follow up with you shortly."})
     flash("Thank you. Grace will follow up with you shortly.", "success")
@@ -469,14 +616,15 @@ def assistant_chat():
 
 @app.route("/testimonials", methods=["POST"])
 def submit_testimonial():
-    name = request.form.get("customer_name", "").strip()
+    customer = current_customer()
+    name = request.form.get("customer_name", "").strip() or (customer["name"] if customer else "")
     message = request.form.get("message", "").strip()
     if not name or not message:
         flash("Please add your name and testimony before submitting.", "error")
         return redirect(url_for("home") + "#testimonials")
     execute(
-        "INSERT INTO testimonials (customer_name, title, message, tag, is_approved, created_at) VALUES (?, ?, ?, ?, 0, ?)",
-        (name, request.form.get("title", "").strip(), message, request.form.get("tag", "").strip(), now_stamp()),
+        "INSERT INTO testimonials (user_id, customer_name, title, message, tag, is_approved, created_at) VALUES (?, ?, ?, ?, ?, 0, ?)",
+        (customer["id"] if customer else 0, name, request.form.get("title", "").strip(), message, request.form.get("tag", "").strip(), now_stamp()),
     )
     flash("Thank you. Your testimony has been received and will appear after review.", "success")
     return redirect(url_for("home") + "#testimonials")
@@ -484,9 +632,10 @@ def submit_testimonial():
 
 @app.route("/reviews", methods=["POST"])
 def submit_review():
-    name = request.form.get("customer_name", "").strip()
-    phone = request.form.get("phone", "").strip()
-    email = request.form.get("email", "").strip()
+    customer = current_customer()
+    name = request.form.get("customer_name", "").strip() or (customer["name"] if customer else "")
+    phone = request.form.get("phone", "").strip() or (customer["phone"] if customer else "")
+    email = request.form.get("email", "").strip() or (customer["email"] if customer else "")
     item_type = request.form.get("item_type", "").strip()
     item_id = int(request.form.get("item_id") or 0)
     message = request.form.get("message", "").strip()
@@ -504,8 +653,8 @@ def submit_review():
         flash("We could not find the selected service or product.", "error")
         return redirect(url_for("home") + "#reviews")
     execute(
-        "INSERT INTO reviews (customer_name, phone, email, item_type, item_id, item_name, rating, message, is_approved, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
-        (name, phone, email, item_type, item_id, item["item_name"], rating, message, now_stamp()),
+        "INSERT INTO reviews (user_id, customer_name, phone, email, item_type, item_id, item_name, rating, message, is_approved, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)",
+        (customer["id"] if customer else 0, name, phone, email, item_type, item_id, item["item_name"], rating, message, now_stamp()),
     )
     flash("Thank you. Your review has been submitted and will appear after approval.", "success")
     return redirect(url_for("home") + "#reviews")

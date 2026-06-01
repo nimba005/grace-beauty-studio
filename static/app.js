@@ -109,12 +109,43 @@ const cartEmptyEl = document.querySelector("[data-cart-empty]");
 const cartStatusEl = document.querySelector("[data-cart-status]");
 const cartCountEls = document.querySelectorAll("[data-cart-count]");
 const bookingForm = document.querySelector("[data-booking-form]");
+const authDrawer = document.querySelector("[data-auth-drawer]");
+const authStatusEl = document.querySelector("[data-auth-status]");
+let customerCartSyncTimer;
+function customerSignedIn() {
+  return document.body?.dataset.customerAuth === "signed-in";
+}
 function readCart() {
   try { return JSON.parse(localStorage.getItem(CART_KEY) || "[]"); }
   catch { return []; }
 }
 function writeCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  syncCustomerCart();
+}
+function syncCustomerCart() {
+  if (!customerSignedIn()) return;
+  clearTimeout(customerCartSyncTimer);
+  customerCartSyncTimer = setTimeout(() => {
+    fetch("/customer/cart", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({cart: readCart()}),
+    }).catch(() => {});
+  }, 300);
+}
+function mergeCart(savedCart) {
+  const current = readCart();
+  const merged = Array.isArray(savedCart) ? savedCart.slice() : [];
+  const keys = new Set(merged.map(cartKey));
+  current.forEach((item) => {
+    const key = cartKey(item);
+    if (!keys.has(key)) {
+      merged.push(item);
+      keys.add(key);
+    }
+  });
+  localStorage.setItem(CART_KEY, JSON.stringify(merged));
 }
 function cartKey(item) {
   return `${item.type}:${item.id}`;
@@ -215,6 +246,29 @@ document.addEventListener("click", (event) => {
   if (event.target.closest("[data-cart-close]")) {
     cartDrawer?.setAttribute("aria-hidden", "true");
   }
+  if (event.target.closest("[data-auth-open]")) {
+    authDrawer?.setAttribute("aria-hidden", "false");
+  }
+  if (event.target.closest("[data-auth-close]")) {
+    authDrawer?.setAttribute("aria-hidden", "true");
+  }
+  const authTab = event.target.closest("[data-auth-tab]");
+  if (authTab) {
+    document.querySelectorAll("[data-auth-tab]").forEach((button) => {
+      button.classList.toggle("active", button === authTab);
+    });
+    document.querySelectorAll("[data-auth-form]").forEach((form) => {
+      form.classList.toggle("active", form.dataset.authForm === authTab.dataset.authTab);
+    });
+  }
+  if (event.target.closest("[data-auth-logout]")) {
+    fetch("/customer/logout", {method: "POST"})
+      .then(() => {
+        document.body.dataset.customerAuth = "guest";
+        window.location.reload();
+      })
+      .catch(() => {});
+  }
   const toggle = event.target.closest("[data-book-toggle]");
   if (toggle) {
     const panel = document.querySelector("[data-book-panel]");
@@ -259,6 +313,40 @@ if (bookingForm) {
       cartStatusEl.textContent = error.message || "Could not submit booking. Please try WhatsApp or call.";
     }
   });
+}
+document.querySelectorAll("[data-auth-form='signup'],[data-auth-form='login']").forEach((form) => {
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const mode = form.dataset.authForm;
+    const payload = Object.fromEntries(new FormData(form).entries());
+    payload.cart = readCart();
+    if (authStatusEl) authStatusEl.textContent = mode === "signup" ? "Creating your account..." : "Signing you in...";
+    try {
+      const response = await fetch(`/customer/${mode}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || "Account request failed.");
+      if (Array.isArray(result.cart)) localStorage.setItem(CART_KEY, JSON.stringify(result.cart));
+      if (authStatusEl) authStatusEl.textContent = result.message || "Account updated.";
+      window.location.reload();
+    } catch (error) {
+      if (authStatusEl) authStatusEl.textContent = error.message || "Please try again.";
+    }
+  });
+});
+if (customerSignedIn()) {
+  fetch("/customer/cart")
+    .then((response) => response.ok ? response.json() : null)
+    .then((result) => {
+      if (!result?.ok) return;
+      mergeCart(result.cart);
+      renderCart();
+      syncCustomerCart();
+    })
+    .catch(() => {});
 }
 const assistantForm = document.querySelector("[data-assistant-form]");
 const assistantMessages = document.querySelector("[data-assistant-messages]");
