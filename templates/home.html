@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='services.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='reviews.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='commerce.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
@@ -19,7 +20,7 @@
       <a class="nav-pill" href="#testimonials" data-nav-section="testimonials">Testimonials</a>
       <a class="nav-pill" href="#booking" data-nav-section="booking">Book</a>
     </nav>
-    <a class="header-action" href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20would%20like%20to%20book%20or%20order." target="_blank" rel="noreferrer">WhatsApp</a>
+    <button class="header-action cart-toggle" type="button" data-cart-open>Cart <span data-cart-count>0</span></button>
   </header>
   <main id="top">
     {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flash-stack">{% for category, message in messages %}<p class="flash {{ category }}">{{ message }}</p>{% endfor %}</div>{% endif %}{% endwith %}
@@ -47,53 +48,54 @@
             <div class="service-panel-head"><h3>{{ group.name }}</h3><p>{{ group.services|length }} styles available</p></div>
             <div class="service-list">
               {% for service in group.services %}
-                <article class="service-row"><img src="{{ service.image_url }}" alt="{{ service.title }}"><div><span class="pill">{{ service.category }}</span><h3>{{ service.title }}</h3><p>{{ service.description }}</p><div class="card-meta"><strong>{{ service.price }}</strong><span>{{ service.duration }}</span></div></div><a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20want%20to%20book%20{{ service.title|urlencode }}" target="_blank" rel="noreferrer">Book</a></article>
+                <article class="service-row"><img src="{{ service.image_url }}" alt="{{ service.title }}"><div><span class="pill">{{ service.category }}</span><h3>{{ service.title }}</h3><p>{{ service.description }}</p><div class="card-meta"><strong>{{ service.price }}</strong><span>{{ service.duration }}</span></div></div><button type="button" data-cart-add data-item-type="service" data-item-id="{{ service.id }}" data-item-name="{{ service.title }}" data-item-meta="{{ service.category }} - {{ service.duration }}" data-item-price="{{ service.price }}">Book session</button></article>
               {% endfor %}
             </div>
           </div>
         {% endfor %}
       </div>
     </section>
-    <section id="testimonials" class="section-block testimonial-band">
-      <div class="section-heading"><p class="eyebrow">Customer voices</p><h2>Real notes from women who booked, ordered, and came back glowing.</h2></div>
-      <div class="testimonial-carousel" aria-label="Rotating customer testimonials">
-        <div class="testimonial-track">
-          {% for testimonial in testimonials %}
-            <article class="testimonial-card">
-              <div class="testimonial-photo"><img src="{{ loop.cycle('/static/images/knotless%20braids.jpeg', '/static/images/fulani%20braids.jpeg', '/static/images/Girls%20Beaded%20Braids.jpeg', '/static/images/Bridal%20%26%20Event%20Styling.jpg') }}" alt="{{ testimonial.customer_name }}"></div>
-              <span>{{ testimonial.tag or 'Grace experience' }}</span>
-              <h3>{{ testimonial.title or 'Beautiful experience' }}</h3>
-              <p>"{{ testimonial.message }}"</p>
-              <strong>{{ testimonial.customer_name }}</strong>
-            </article>
-          {% endfor %}
-          {% for testimonial in testimonials %}
-            <article class="testimonial-card" aria-hidden="true">
-              <div class="testimonial-photo"><img src="{{ loop.cycle('/static/images/knotless%20braids.jpeg', '/static/images/fulani%20braids.jpeg', '/static/images/Girls%20Beaded%20Braids.jpeg', '/static/images/Bridal%20%26%20Event%20Styling.jpg') }}" alt=""></div>
-              <span>{{ testimonial.tag or 'Grace experience' }}</span>
-              <h3>{{ testimonial.title or 'Beautiful experience' }}</h3>
-              <p>"{{ testimonial.message }}"</p>
-              <strong>{{ testimonial.customer_name }}</strong>
-            </article>
-          {% endfor %}
-        </div>
-      </div>
-      <form id="share-testimony" class="review-form" method="post" action="/testimonials">
-        <div><p class="eyebrow">Share a testimony</p><h3>Your words help another customer choose with confidence.</h3></div>
-        <label>Name<input name="customer_name" required placeholder="Your name"></label>
-        <label>Short title<input name="title" placeholder="Example: Soft finish, clean service"></label>
-        <label>Tag<input name="tag" placeholder="Example: Protective styling"></label>
-        <label class="wide">Testimony<textarea name="message" rows="4" required placeholder="Tell us what you loved about the service or product."></textarea></label>
-        <button type="submit">Submit testimony</button>
-      </form>
-    </section>
     <section id="products" class="section-block cream-band">
       <div class="section-heading split-heading"><div><p class="eyebrow">Grace shelves</p><h2>Natural products for soft hair, nourished skin, and everyday glow.</h2></div><p>Ghee blends, shea butter, and hair-care essentials can be ordered directly through WhatsApp.</p></div>
       <div class="card-grid product-grid">
         {% for product in products %}
-          <article class="beauty-card product-card"><img src="{{ product.image_url }}" alt="{{ product.name }}"><div><span class="pill product-pill">{{ product.category }}</span><h3>{{ product.name }}</h3><p>{{ product.description }}</p><div class="card-meta"><strong>{{ product.price }}</strong><span>{{ product.size }} - {{ product.stock_status }}</span></div><a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20want%20to%20order%20{{ product.name|urlencode }}" target="_blank" rel="noreferrer">Order product</a></div></article>
+          <article class="beauty-card product-card"><img src="{{ product.image_url }}" alt="{{ product.name }}"><div><span class="pill product-pill">{{ product.category }}</span><h3>{{ product.name }}</h3><p>{{ product.description }}</p><div class="card-meta"><strong>{{ product.price }}</strong><span>{{ product.size }} - {{ product.stock_status }}</span></div><button type="button" data-cart-add data-item-type="product" data-item-id="{{ product.id }}" data-item-name="{{ product.name }}" data-item-meta="{{ product.category }} - {{ product.size }}" data-item-price="{{ product.price }}">Add to cart</button></div></article>
         {% endfor %}
       </div>
+      <section id="testimonials" class="testimonial-band product-testimonials">
+        <div class="section-heading"><p class="eyebrow">Customer voices</p><h2>Real notes from women who booked, ordered, and came back glowing.</h2></div>
+        <div class="testimonial-carousel" aria-label="Rotating customer testimonials">
+          <div class="testimonial-track">
+            {% for testimonial in testimonials %}
+              <article class="testimonial-card">
+                <div class="testimonial-photo"><img src="{{ loop.cycle('/static/images/knotless%20braids.jpeg', '/static/images/fulani%20braids.jpeg', '/static/images/Girls%20Beaded%20Braids.jpeg', '/static/images/Bridal%20%26%20Event%20Styling.jpg') }}" alt="{{ testimonial.customer_name }}"></div>
+                <span>{{ testimonial.tag or 'Grace experience' }}</span>
+                <h3>{{ testimonial.title or 'Beautiful experience' }}</h3>
+                <p>"{{ testimonial.message }}"</p>
+                <strong>{{ testimonial.customer_name }}</strong>
+              </article>
+            {% endfor %}
+            {% for testimonial in testimonials %}
+              <article class="testimonial-card" aria-hidden="true">
+                <div class="testimonial-photo"><img src="{{ loop.cycle('/static/images/knotless%20braids.jpeg', '/static/images/fulani%20braids.jpeg', '/static/images/Girls%20Beaded%20Braids.jpeg', '/static/images/Bridal%20%26%20Event%20Styling.jpg') }}" alt=""></div>
+                <span>{{ testimonial.tag or 'Grace experience' }}</span>
+                <h3>{{ testimonial.title or 'Beautiful experience' }}</h3>
+                <p>"{{ testimonial.message }}"</p>
+                <strong>{{ testimonial.customer_name }}</strong>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+        <button class="gated-open" type="button" data-gated-open="testimonial" hidden>Share a testimony</button>
+        <form id="share-testimony" class="review-form gated-form" method="post" action="/testimonials" data-gated-form="testimonial" hidden>
+          <div><p class="eyebrow">Share a testimony</p><h3>Your words help another customer choose with confidence.</h3></div>
+          <label>Name<input name="customer_name" required placeholder="Your name"></label>
+          <label>Short title<input name="title" placeholder="Example: Soft finish, clean service"></label>
+          <label>Tag<input name="tag" placeholder="Example: Protective styling"></label>
+          <label class="wide">Testimony<textarea name="message" rows="4" required placeholder="Tell us what you loved about the service or product."></textarea></label>
+          <button type="submit">Submit testimony</button>
+        </form>
+      </section>
       <div id="reviews" class="reviews-panel">
         <div class="section-heading split-heading"><div><p class="eyebrow">Customer reviews</p><h2>Reviews from confirmed bookings and product orders.</h2></div><p>Reviews are checked against a previous booking or order request before Grace publishes them.</p></div>
         <div class="review-list">
@@ -103,7 +105,8 @@
             <p class="empty-state">No published reviews yet.</p>
           {% endfor %}
         </div>
-        <form class="review-form" method="post" action="/reviews">
+        <button class="gated-open" type="button" data-gated-open="review" hidden>Leave a verified review</button>
+        <form class="review-form gated-form" method="post" action="/reviews" data-gated-form="review" hidden>
           <div><p class="eyebrow">Leave a review</p><h3>Use the phone or email you used when booking or ordering.</h3></div>
           <label>Name<input name="customer_name" required placeholder="Your name"></label>
           <label>Phone used<input name="phone" placeholder="+254..."></label>
@@ -116,13 +119,48 @@
         </form>
       </div>
     </section>
-    <section id="booking" class="booking-section">
-      <div><p class="eyebrow">Book or order</p><h2>Tell Grace what you need and she will confirm availability.</h2><p>{{ settings.booking_note }}</p><div class="contact-list"><span>{{ settings.email }}</span><span>{{ settings.phone }}</span><span>{{ settings.whatsapp }}</span><span>{{ settings.instagram }}</span><span>{{ settings.address }}</span></div></div>
-      <form class="booking-form" method="post" action="{{ url_for('inquire') }}">
-        <label>Name<input name="name" required placeholder="Your name"></label><label>Phone or WhatsApp<input name="phone" required placeholder="Your phone number"></label><label>Email<input name="email" type="email" placeholder="Optional"></label><label>Interest<select name="interest"><option>Salon booking</option><option>Product order</option><option>Bridal or event styling</option><option>General inquiry</option></select></label><label class="wide">Message<textarea name="message" rows="4" placeholder="Share the hairstyle, product, date, or budget you have in mind."></textarea></label><button type="submit">Send request</button>
-      </form>
+    <section id="booking" class="booking-section compact-booking">
+      <div class="contact-intro"><p class="eyebrow">Contact us</p><h2>Choose how you would like Grace Beauty Studio to respond.</h2><p>Use the cart for product orders and session bookings, or choose one of the contact options below.</p></div>
+      <div class="contact-card">
+        <div><strong>Direct contact</strong><span>Open your preferred channel without displaying private details on the page.</span></div>
+        <div class="quick-actions contact-actions" aria-label="Contact Grace">
+          <a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20would%20like%20to%20book%20or%20order." target="_blank" rel="noreferrer" aria-label="WhatsApp"><span>WA</span><small>WhatsApp</small></a>
+          <a href="mailto:{{ settings.email }}?subject=Grace%20Beauty%20Studio%20booking" aria-label="Email"><span>@</span><small>Email</small></a>
+          <a href="{{ settings.linkedin }}" target="_blank" rel="noreferrer" aria-label="LinkedIn"><span>in</span><small>LinkedIn</small></a>
+          <a href="tel:{{ settings.phone }}" aria-label="Call"><span>Call</span><small>Phone</small></a>
+        </div>
+      </div>
     </section>
   </main>
+  <aside class="cart-drawer" data-cart-drawer aria-hidden="true">
+    <div class="cart-panel">
+      <header><div><p class="eyebrow">Your selection</p><h2>Cart & sessions</h2></div><button type="button" data-cart-close aria-label="Close cart">Close</button></header>
+      <div class="cart-items" data-cart-items></div>
+      <p class="cart-empty" data-cart-empty>No products or sessions selected yet.</p>
+      <form class="booking-form cart-booking-form" data-booking-form>
+        <label>Name<input name="name" required placeholder="Your name"></label>
+        <label>Phone or WhatsApp<input name="phone" required placeholder="+254..."></label>
+        <label>Email<input name="email" type="email" placeholder="Optional"></label>
+        <label class="wide">Message<textarea name="message" rows="3" placeholder="Preferred date, delivery location, or any notes."></textarea></label>
+        <button type="submit">Submit booking</button>
+      </form>
+      <p class="cart-status" data-cart-status></p>
+    </div>
+  </aside>
+  <section class="book-contact-widget" data-book-widget>
+    <button class="book-contact-fab" type="button" data-book-toggle aria-label="Open Grace assistant"><span>G</span></button>
+    <div class="book-contact-panel" data-book-panel hidden>
+      <header class="book-contact-header"><div><p class="eyebrow">Assistant</p><strong>Grace shopping guide</strong></div><button type="button" data-book-close aria-label="Close Grace assistant">Close</button></header>
+      <button type="button" data-cart-open>Open cart & booking</button>
+      <div class="assistant-chat">
+        <div class="assistant-messages" data-assistant-messages><p>Hi, I can help you compare services, choose products, and add matching items to your cart.</p></div>
+        <form data-assistant-form>
+          <input name="message" placeholder="Ask about braids, locs, products..." autocomplete="off">
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </section>
   <footer class="site-footer"><div><strong>{{ settings.studio_name }}</strong><span>{{ settings.tagline }}</span></div><a href="/grace-admin/login">Studio admin</a></footer>
 </body>
 </html>

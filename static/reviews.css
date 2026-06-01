@@ -1,6 +1,7 @@
 .testimonial-band{position:relative;overflow:hidden;background:linear-gradient(180deg,#fff,#fff5f8 68%,#fff)}
 .testimonial-band:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 18% 12%,rgba(220,95,143,.12),transparent 28%),radial-gradient(circle at 84% 22%,rgba(223,244,232,.82),transparent 24%);pointer-events:none}
 .testimonial-band>.section-heading,.testimonial-band>.testimonial-carousel,.testimonial-band>.review-form{position:relative}
+.product-testimonials{margin:34px 0 0;padding:30px 0 4px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:linear-gradient(180deg,#fffdfd,#fff5f8)}
 .testimonial-prompt{margin:0;padding:16px 20px;border:1px solid rgba(123,37,92,.16);border-radius:999px;background:#fff;color:var(--plum)!important;font-weight:950;box-shadow:0 12px 30px rgba(123,37,92,.08)}
 .testimonial-prompt a{text-decoration:underline;text-underline-offset:3px}
 .testimonial-carousel{width:100%;overflow:hidden;padding:18px 0 28px;margin-bottom:12px;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}

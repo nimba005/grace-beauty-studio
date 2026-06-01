@@ -1,9 +1,12 @@
 ﻿
 from datetime import datetime
+import json
 import os
 import sqlite3
 from functools import wraps
 from pathlib import Path
+from urllib.error import URLError, HTTPError
+from urllib.request import Request, urlopen
 from uuid import uuid4
 
 try:
@@ -13,7 +16,7 @@ except ImportError:
     psycopg = None
     dict_row = None
 
-from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -190,6 +193,7 @@ DEFAULT_SETTINGS = {
     "email": os.environ.get("STUDIO_EMAIL", "ptrulina50@gmail.com"),
     "phone": os.environ.get("STUDIO_PHONE", "+254700549855"),
     "whatsapp": os.environ.get("STUDIO_WHATSAPP", "25439735584"),
+    "linkedin": os.environ.get("STUDIO_LINKEDIN", "https://www.linkedin.com/"),
     "instagram": "@gracebeautystudio",
     "opening_hours": "Mon - Sat, 8:00 AM - 7:00 PM",
     "booking_note": "Send a WhatsApp message to reserve a style, ask about products, or request a bridal/home service quote.",
@@ -391,9 +395,76 @@ def home():
 
 @app.route("/inquire", methods=["POST"])
 def inquire():
-    execute("INSERT INTO inquiries (name, phone, email, interest, message, status, created_at) VALUES (?, ?, ?, ?, ?, 'New', ?)", (request.form.get("name", "").strip(), request.form.get("phone", "").strip(), request.form.get("email", "").strip(), request.form.get("interest", "").strip(), request.form.get("message", "").strip(), now_stamp()))
+    payload = request.get_json(silent=True) or request.form
+    name = (payload.get("name") or "").strip()
+    phone = (payload.get("phone") or "").strip()
+    email = (payload.get("email") or "").strip()
+    interest = (payload.get("interest") or "").strip()
+    message = (payload.get("message") or "").strip()
+    cart_summary = (payload.get("cart_summary") or "").strip()
+    if cart_summary:
+        message = f"{message}\n\nSelected items:\n{cart_summary}".strip()
+    if not name or not phone:
+        if request.is_json:
+            return jsonify({"ok": False, "error": "Please add your name and phone or WhatsApp number."}), 400
+        flash("Please add your name and phone or WhatsApp number.", "error")
+        return redirect(url_for("home") + "#booking")
+    execute("INSERT INTO inquiries (name, phone, email, interest, message, status, created_at) VALUES (?, ?, ?, ?, ?, 'New', ?)", (name, phone, email, interest, message, now_stamp()))
+    if request.is_json:
+        return jsonify({"ok": True, "message": "Thank you. Grace will follow up with you shortly."})
     flash("Thank you. Grace will follow up with you shortly.", "success")
     return redirect(url_for("home") + "#booking")
+
+
+@app.route("/assistant/chat", methods=["POST"])
+def assistant_chat():
+    payload = request.get_json(silent=True) or {}
+    message = (payload.get("message") or "").strip()
+    cart = payload.get("cart") or []
+    if not message:
+        return jsonify({"ok": False, "reply": "Please type what you need help with."}), 400
+    services = list_services()
+    products = list_products()
+    catalog = {
+        "services": [{"id": item["id"], "title": item["title"], "category": item["category"], "price": item["price"], "duration": item["duration"]} for item in services],
+        "products": [{"id": item["id"], "name": item["name"], "category": item["category"], "price": item["price"], "size": item["size"]} for item in products],
+    }
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return jsonify({"ok": True, "reply": "I can help you choose a style or product. Tell me if you want braids, locs, children styles, natural care, treatments, bridal styling, or products, then add your choice to the cart and submit a booking."})
+    prompt = (
+        "You are Grace Beauty Studio's concise shopping and service guide in Nairobi. "
+        "Help customers understand the provided products and services, compare options, and suggest what to add to cart. "
+        "Do not provide direct contact details, do not invent prices, and keep replies under 90 words."
+    )
+    data = {
+        "model": os.environ.get("OPENAI_MODEL", "gpt-4.1-mini"),
+        "input": [
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": json.dumps({"message": message, "cart": cart, "catalog": catalog})},
+        ],
+    }
+    try:
+        req = Request(
+            "https://api.openai.com/v1/responses",
+            data=json.dumps(data).encode("utf-8"),
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urlopen(req, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        reply = result.get("output_text", "").strip()
+        if not reply:
+            parts = result.get("output", [])
+            reply = " ".join(
+                content.get("text", "")
+                for item in parts
+                for content in item.get("content", [])
+                if content.get("type") in {"output_text", "text"}
+            ).strip()
+        return jsonify({"ok": True, "reply": reply or "I can help you choose and book. What style or product are you interested in?"})
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError):
+        return jsonify({"ok": True, "reply": "I can help with booking, but the AI service is not reachable right now. Add the product or service to cart, then submit your booking details and Grace will follow up."})
 
 
 @app.route("/testimonials", methods=["POST"])
@@ -477,7 +548,7 @@ def admin_dashboard():
 @app.route("/grace-admin/settings", methods=["POST"])
 @admin_required
 def update_settings():
-    for key in ["studio_name", "tagline", "hero_title", "hero_subtitle", "address", "email", "phone", "whatsapp", "instagram", "opening_hours", "booking_note"]:
+    for key in ["studio_name", "tagline", "hero_title", "hero_subtitle", "address", "email", "phone", "whatsapp", "linkedin", "instagram", "opening_hours", "booking_note"]:
         if USE_POSTGRES:
             execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value", (key, request.form.get(key, "").strip()))
         else:
