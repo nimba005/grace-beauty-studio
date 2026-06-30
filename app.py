@@ -378,6 +378,18 @@ def group_services(services):
     return grouped
 
 
+def group_products(products):
+    order = ["Hair and skin care", "Natural care", "Hair care", "Skin care", "Body care", "Accessories"]
+    grouped = []
+    for category in order:
+        items = [product for product in products if product["category"] == category]
+        if items:
+            grouped.append({"name": category, "products": items})
+    for category in sorted({product["category"] for product in products} - set(order)):
+        grouped.append({"name": category, "products": [product for product in products if product["category"] == category]})
+    return grouped
+
+
 def list_products(include_inactive=False):
     clause = "" if include_inactive else "WHERE is_active = 1"
     return query_all(f"SELECT * FROM products {clause} ORDER BY is_featured DESC, sort_order ASC, id DESC")
@@ -469,6 +481,7 @@ def home():
         services=services,
         service_groups=group_services(services),
         products=products,
+        product_groups=group_products(products),
         testimonials=list_testimonials(),
         reviews=list_reviews(),
         review_items={"services": services, "products": products},

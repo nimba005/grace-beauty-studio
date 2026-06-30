@@ -9,11 +9,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='reviews.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='commerce.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='atelier.css') }}">
   <script defer src="{{ url_for('static', filename='app.js') }}"></script>
 </head>
 <body class="public-site" data-customer-auth="{{ 'signed-in' if customer else 'guest' }}">
   <header class="site-header">
-    <a class="brand" href="#top"><span>G</span><strong>{{ settings.studio_name }}</strong></a>
+    <a class="brand" href="#top"><span>G</span><strong>{{ settings.studio_name }}</strong><small>Beauty atelier</small></a>
     <nav class="main-nav" aria-label="Main navigation">
       <a class="nav-pill is-active" href="#services" data-nav-section="services" aria-current="true">Services</a>
       <a class="nav-pill" href="#products" data-nav-section="products">Products</a>
@@ -22,7 +23,7 @@
     </nav>
     <div class="header-actions">
       <button class="header-action account-toggle" type="button" data-auth-open>{{ customer.name if customer else 'Sign in' }}</button>
-      <button class="header-action cart-toggle" type="button" data-cart-open>Cart <span data-cart-count>0</span></button>
+      <button class="header-action cart-toggle" type="button" data-cart-open><img src="{{ url_for('static', filename='images/carticon.png') }}" alt="">Cart <span data-cart-count>0</span></button>
     </div>
   </header>
   <main id="top">
@@ -30,16 +31,20 @@
     <section class="hero-section">
       <div class="hero-media" aria-hidden="true"></div>
       <div class="hero-content">
-        <p class="eyebrow">{{ settings.tagline }}</p>
+        <p class="eyebrow">Grace ritual care</p>
         <h1>{{ settings.hero_title }}</h1>
         <p>{{ settings.hero_subtitle }}</p>
         <div class="hero-actions"><a class="button primary" href="#booking">Book a service</a><a class="button soft" href="#products">Shop natural care</a></div>
       </div>
-      <aside class="hero-card"><span>Open</span><strong>{{ settings.opening_hours }}</strong><small>{{ settings.address }}</small></aside>
+      <aside class="hero-card"><span>Studio hours</span><strong>{{ settings.opening_hours }}</strong><small>{{ settings.address }}</small></aside>
     </section>
-    <section class="intro-strip"><article><strong>{{ services|length }}</strong><span>Salon services</span></article><article><strong>{{ products|length }}</strong><span>Natural products</span></article><article><strong>{{ testimonials|length }}</strong><span>Customer voices</span></article></section>
+    <section class="intro-strip">
+      <article><strong>{{ services|length }}</strong><span>Salon services</span></article>
+      <article><strong>{{ product_groups|length }}</strong><span>Product shelves</span></article>
+      <article><strong>{{ testimonials|length }}</strong><span>Customer voices</span></article>
+    </section>
     <section id="services" class="section-block blush-band">
-      <div class="section-heading split-heading"><div><p class="eyebrow">Salon menu</p><h2>African hair services grouped by style, occasion, and age.</h2></div><p>Choose a category to see the styles under it, then book the exact look you want.</p></div>
+      <div class="section-heading split-heading"><div><p class="eyebrow">Salon menu</p><h2>African hair services grouped by ritual, style, and occasion.</h2></div><p>Choose a category, compare timing and pricing, then book the exact look you want.</p></div>
       <div class="service-browser" data-service-browser>
         <div class="service-tabs" role="tablist" aria-label="Hair service categories">
           {% for group in service_groups %}
@@ -59,10 +64,41 @@
       </div>
     </section>
     <section id="products" class="section-block cream-band">
-      <div class="section-heading split-heading"><div><p class="eyebrow">Grace shelves</p><h2>Natural products for soft hair, nourished skin, and everyday glow.</h2></div><p>Ghee blends, shea butter, and hair-care essentials can be ordered directly through WhatsApp.</p></div>
-      <div class="card-grid product-grid">
-        {% for product in products %}
-          <article class="beauty-card product-card"><img src="{{ product.image_url }}" alt="{{ product.name }}"><div><span class="pill product-pill">{{ product.category }}</span><h3>{{ product.name }}</h3><p>{{ product.description }}</p><div class="card-meta"><strong>{{ product.price }}</strong><span>{{ product.size }} - {{ product.stock_status }}</span></div><button type="button" data-cart-add data-item-type="product" data-item-id="{{ product.id }}" data-item-name="{{ product.name }}" data-item-meta="{{ product.category }} - {{ product.size }}" data-item-price="{{ product.price }}">Add to cart</button></div></article>
+      <div class="section-heading split-heading product-heading">
+        <div><p class="eyebrow">Grace shelves</p><h2>Natural products arranged like a boutique shelf.</h2></div>
+        <p>Ghee blends, shea butter, and hair-care essentials can be ordered directly through your cart and submitted to Grace.</p>
+      </div>
+      <div class="product-category-nav" aria-label="Product shelves">
+        {% for group in product_groups %}
+          <a href="#product-shelf-{{ loop.index }}">{{ group.name }}</a>
+        {% endfor %}
+      </div>
+      <div class="product-shelf-stack">
+        {% for group in product_groups %}
+          <section id="product-shelf-{{ loop.index }}" class="product-shelf">
+            <div class="product-shelf-copy">
+              <p class="eyebrow">Shelf {{ "%02d"|format(loop.index) }}</p>
+              <h3>{{ group.name }}</h3>
+              <p>{{ group.products|length }} curated {{ "item" if group.products|length == 1 else "items" }} for soft hair, nourished skin, and simple daily care.</p>
+            </div>
+            <div class="product-row">
+              {% for product in group.products %}
+                <article class="beauty-card product-card boutique-product-card">
+                  <a class="product-image-link" href="#booking" aria-label="Ask about {{ product.name }}"><img src="{{ product.image_url }}" alt="{{ product.name }}"></a>
+                  <div>
+                    <span class="pill product-pill">{{ product.category }}</span>
+                    <h3>{{ product.name }}</h3>
+                    <p>{{ product.description }}</p>
+                    <div class="product-rating" aria-label="Customer rating"><span>★★★★★</span><small>({{ loop.index + 8 }})</small></div>
+                    <div class="card-meta"><strong>{{ product.price }}</strong><span>{{ product.size }} · {{ product.stock_status }}</span></div>
+                    <button type="button" data-cart-add data-item-type="product" data-item-id="{{ product.id }}" data-item-name="{{ product.name }}" data-item-meta="{{ product.category }} - {{ product.size }}" data-item-price="{{ product.price }}">Add to cart</button>
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          </section>
+        {% else %}
+          <p class="empty-state">Products will appear here once Grace adds them to the shelf.</p>
         {% endfor %}
       </div>
       <section id="testimonials" class="testimonial-band product-testimonials">
@@ -123,21 +159,21 @@
       </div>
     </section>
     <section id="booking" class="booking-section compact-booking">
-      <div class="contact-intro"><p class="eyebrow">Contact us</p><h2>Choose how you would like Grace Beauty Studio to respond.</h2><p>Use the cart for product orders and session bookings, or choose one of the contact options below.</p></div>
+      <div class="contact-intro"><p class="eyebrow">Contact us</p><h2>Talk to Grace through your preferred channel.</h2><p>Use the cart for product orders and session bookings, or choose one of the contact options below.</p></div>
       <div class="contact-card">
-        <div><strong>Direct contact</strong><span>Open your preferred channel without displaying private details on the page.</span></div>
+        <div><strong>Direct contact</strong><span>Open WhatsApp, email, LinkedIn, or phone with one tap.</span></div>
         <div class="quick-actions contact-actions" aria-label="Contact Grace">
-          <a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20would%20like%20to%20book%20or%20order." target="_blank" rel="noreferrer" aria-label="WhatsApp"><span>WA</span><small>WhatsApp</small></a>
-          <a href="mailto:{{ settings.email }}?subject=Grace%20Beauty%20Studio%20booking" aria-label="Email"><span>@</span><small>Email</small></a>
-          <a href="{{ settings.linkedin }}" target="_blank" rel="noreferrer" aria-label="LinkedIn"><span>in</span><small>LinkedIn</small></a>
-          <a href="tel:{{ settings.phone }}" aria-label="Call"><span>Call</span><small>Phone</small></a>
+          <a href="https://wa.me/{{ settings.whatsapp }}?text=Hello%20Grace%2C%20I%20would%20like%20to%20book%20or%20order." target="_blank" rel="noreferrer" aria-label="WhatsApp"><span><img src="{{ url_for('static', filename='images/whatsappicon.jpeg') }}" alt=""></span><small>WhatsApp</small></a>
+          <a href="mailto:{{ settings.email }}?subject=Grace%20Beauty%20Studio%20booking" aria-label="Email"><span><img src="{{ url_for('static', filename='images/emailicon.png') }}" alt=""></span><small>Email</small></a>
+          <a href="{{ settings.linkedin }}" target="_blank" rel="noreferrer" aria-label="LinkedIn"><span><img src="{{ url_for('static', filename='images/linkedIn.png') }}" alt=""></span><small>LinkedIn</small></a>
+          <a href="tel:{{ settings.phone }}" aria-label="Call"><span><img src="{{ url_for('static', filename='images/phoneicon.avif') }}" alt=""></span><small>Phone</small></a>
         </div>
       </div>
     </section>
   </main>
   <aside class="cart-drawer" data-cart-drawer aria-hidden="true">
     <div class="cart-panel">
-      <header><div><p class="eyebrow">Your selection</p><h2>Cart & sessions</h2></div><button type="button" data-cart-close aria-label="Close cart">Close</button></header>
+      <header><div><p class="eyebrow">Your selection</p><h2><img src="{{ url_for('static', filename='images/carticon.png') }}" alt="">Cart & sessions</h2></div><button type="button" data-cart-close aria-label="Close cart">Close</button></header>
       <div class="cart-items" data-cart-items></div>
       <p class="cart-empty" data-cart-empty>No products or sessions selected yet.</p>
       <form class="booking-form cart-booking-form" data-booking-form>
@@ -195,10 +231,10 @@
     </div>
   </aside>
   <section class="book-contact-widget" data-book-widget>
-    <button class="book-contact-fab" type="button" data-book-toggle aria-label="Open Grace assistant"><span>G</span><small>Assistant</small></button>
+    <button class="book-contact-fab" type="button" data-book-toggle aria-label="Open Grace assistant"><span><img src="{{ url_for('static', filename='images/chaticon.png') }}" alt=""></span><small>Assistant</small></button>
     <div class="book-contact-panel" data-book-panel hidden>
       <header class="book-contact-header"><div><p class="eyebrow">Assistant</p><strong>Grace shopping guide</strong></div><button type="button" data-book-close aria-label="Close Grace assistant">Close</button></header>
-      <button type="button" data-cart-open>Open cart & booking</button>
+      <button class="assistant-cart-button" type="button" data-cart-open>Open cart & booking</button>
       <div class="assistant-chat">
         <div class="assistant-messages" data-assistant-messages><p>Hi, I can help you compare services, choose products, and add matching items to your cart.</p></div>
         <form data-assistant-form>
@@ -208,6 +244,5 @@
       </div>
     </div>
   </section>
-  <footer class="site-footer"><div><strong>{{ settings.studio_name }}</strong><span>{{ settings.tagline }}</span></div><a href="/grace-admin/login">Studio admin</a></footer>
 </body>
 </html>
