@@ -111,16 +111,32 @@ const cartCountEls = document.querySelectorAll("[data-cart-count]");
 const bookingForm = document.querySelector("[data-booking-form]");
 const authDrawer = document.querySelector("[data-auth-drawer]");
 const authStatusEl = document.querySelector("[data-auth-status]");
+const itemDetailModal = document.querySelector("[data-item-detail-modal]");
+let detailItem = null;
 let customerCartSyncTimer;
 function customerSignedIn() {
   return document.body?.dataset.customerAuth === "signed-in";
 }
 function readCart() {
-  try { return JSON.parse(localStorage.getItem(CART_KEY) || "[]"); }
+  try {
+    const cart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+    return Array.isArray(cart) ? cart.map(normalizeCartItem).filter(Boolean) : [];
+  }
   catch { return []; }
 }
+function normalizeCartItem(item) {
+  if (!item || !item.type || !item.id) return null;
+  return {
+    type: item.type,
+    id: String(item.id),
+    name: item.name || "Selected item",
+    meta: item.meta || "",
+    price: item.price || "",
+    quantity: Math.max(1, Number(item.quantity || 1)),
+  };
+}
 function writeCart(cart) {
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  localStorage.setItem(CART_KEY, JSON.stringify((cart || []).map(normalizeCartItem).filter(Boolean)));
   syncCustomerCart();
 }
 function syncCustomerCart() {
@@ -158,7 +174,7 @@ function hasInteraction() {
   return localStorage.getItem(INTERACTION_KEY) === "true";
 }
 function cartSummary(cart) {
-  return cart.map((item) => `- ${item.type === "service" ? "Session" : "Product"}: ${item.name} (${item.price || item.meta || "details on request"})`).join("\n");
+  return cart.map((item) => `- ${item.type === "service" ? "Session" : "Product"}: ${item.name} x${item.quantity || 1} (${[item.meta, item.price].filter(Boolean).join(" - ") || "details on request"})`).join("\n");
 }
 function catalogItems() {
   return Array.from(document.querySelectorAll("[data-cart-add]")).map((button) => ({
@@ -167,16 +183,33 @@ function catalogItems() {
     name: button.dataset.itemName,
     meta: button.dataset.itemMeta,
     price: button.dataset.itemPrice,
+    quantity: 1,
   }));
 }
-function addItemToCart(item) {
+function addItemToCart(item, quantity = 1) {
   const cart = readCart();
-  const exists = cart.some((entry) => cartKey(entry) === cartKey(item));
-  if (!exists) {
-    writeCart([...cart, item]);
-    renderCart();
+  const key = cartKey(item);
+  const existing = cart.find((entry) => cartKey(entry) === key);
+  if (existing) {
+    existing.quantity = Math.max(1, Number(existing.quantity || 1)) + Math.max(1, Number(quantity || 1));
+  } else {
+    cart.push({...item, quantity: Math.max(1, Number(quantity || item.quantity || 1))});
   }
-  return !exists;
+  writeCart(cart);
+  renderCart();
+  return existing ? existing.quantity : quantity;
+}
+function setItemQuantity(item, quantity) {
+  const cart = readCart();
+  const key = cartKey(item);
+  const nextQuantity = Math.max(1, Number(quantity || 1));
+  const updated = cart.map((entry) => cartKey(entry) === key ? {...entry, quantity: nextQuantity} : entry);
+  writeCart(updated);
+  renderCart();
+}
+function removeItemFromCart(item) {
+  writeCart(readCart().filter((entry) => cartKey(entry) !== cartKey(item)));
+  renderCart();
 }
 function findRequestedCatalogItem(message) {
   if (!/\b(add|cart|order|book|reserve|choose|get)\b/i.test(message)) return null;
@@ -191,30 +224,54 @@ function findRequestedCatalogItem(message) {
 }
 function renderCart() {
   const cart = readCart();
-  const keys = new Set(cart.map(cartKey));
   document.querySelectorAll("[data-cart-add]").forEach((button) => {
-    const key = `${button.dataset.itemType}:${button.dataset.itemId}`;
-    const added = keys.has(key);
-    button.classList.toggle("is-added", added);
-    button.textContent = added ? "Remove" : (button.dataset.itemType === "service" ? "Book session" : "Add to cart");
+    button.classList.remove("is-added");
+    button.textContent = button.dataset.itemType === "service" ? "Book session" : "Add to cart";
   });
-  cartCountEls.forEach((el) => { el.textContent = cart.length; });
+  const totalQuantity = cart.reduce((total, item) => total + Math.max(1, Number(item.quantity || 1)), 0);
+  cartCountEls.forEach((el) => { el.textContent = totalQuantity; });
   if (!cartItemsEl || !cartEmptyEl) return;
   cartItemsEl.innerHTML = "";
   cartEmptyEl.hidden = cart.length > 0;
   cart.forEach((item) => {
     const row = document.createElement("article");
     row.className = "cart-item";
-    row.innerHTML = `<div><strong></strong><span></span><small></small></div><button type="button">Remove</button>`;
+    row.innerHTML = `<div><strong></strong><span></span><small></small></div><div class="cart-qty"><button type="button" data-qty-dec aria-label="Decrease quantity">-</button><input type="number" min="1" max="20"><button type="button" data-qty-inc aria-label="Increase quantity">+</button></div><button type="button" data-cart-remove>Remove</button>`;
     row.querySelector("strong").textContent = item.name;
     row.querySelector("span").textContent = item.type === "service" ? "Session booking" : "Product order";
     row.querySelector("small").textContent = [item.meta, item.price].filter(Boolean).join(" - ");
-    row.querySelector("button").addEventListener("click", () => {
-      writeCart(readCart().filter((entry) => cartKey(entry) !== cartKey(item)));
-      renderCart();
+    const quantityInput = row.querySelector("input");
+    quantityInput.value = Math.max(1, Number(item.quantity || 1));
+    row.querySelector("[data-qty-dec]").addEventListener("click", () => {
+      setItemQuantity(item, Math.max(1, Number(quantityInput.value || 1) - 1));
+    });
+    row.querySelector("[data-qty-inc]").addEventListener("click", () => {
+      setItemQuantity(item, Number(quantityInput.value || 1) + 1);
+    });
+    quantityInput.addEventListener("change", () => {
+      setItemQuantity(item, quantityInput.value);
+    });
+    row.querySelector("[data-cart-remove]").addEventListener("click", () => {
+      removeItemFromCart(item);
     });
     cartItemsEl.appendChild(row);
   });
+}
+function openItemDetail(item) {
+  if (!itemDetailModal) return;
+  detailItem = item;
+  itemDetailModal.querySelector("[data-detail-image]").src = item.image || "";
+  itemDetailModal.querySelector("[data-detail-image]").alt = item.name || "";
+  itemDetailModal.querySelector("[data-detail-category]").textContent = item.category || item.type || "";
+  itemDetailModal.querySelector("[data-detail-name]").textContent = item.name || "";
+  itemDetailModal.querySelector("[data-detail-description]").textContent = item.description || "";
+  itemDetailModal.querySelector("[data-detail-price]").textContent = item.price || "";
+  itemDetailModal.querySelector("[data-detail-meta]").textContent = item.meta || "";
+  itemDetailModal.querySelector("[data-detail-qty]").value = 1;
+  itemDetailModal.setAttribute("aria-hidden", "false");
+}
+function closeItemDetail() {
+  itemDetailModal?.setAttribute("aria-hidden", "true");
 }
 function syncGatedForms() {
   document.querySelectorAll("[data-gated-open]").forEach((button) => {
@@ -233,12 +290,32 @@ document.addEventListener("click", (event) => {
       name: addButton.dataset.itemName,
       meta: addButton.dataset.itemMeta,
       price: addButton.dataset.itemPrice,
+      quantity: 1,
     };
-    const cart = readCart();
-    const exists = cart.some((entry) => cartKey(entry) === cartKey(item));
-    if (exists) writeCart(cart.filter((entry) => cartKey(entry) !== cartKey(item)));
-    else addItemToCart(item);
-    renderCart();
+    addItemToCart(item, 1);
+    if (cartStatusEl) cartStatusEl.textContent = `${item.name} added to cart.`;
+  }
+  const detailButton = event.target.closest("[data-item-detail]");
+  if (detailButton) {
+    openItemDetail({
+      type: detailButton.dataset.itemType,
+      id: detailButton.dataset.itemId,
+      name: detailButton.dataset.itemName,
+      category: detailButton.dataset.itemCategory,
+      meta: detailButton.dataset.itemMeta,
+      price: detailButton.dataset.itemPrice,
+      image: detailButton.dataset.itemImage,
+      description: detailButton.dataset.itemDescription,
+    });
+  }
+  if (event.target.closest("[data-item-detail-close]") || event.target === itemDetailModal) {
+    closeItemDetail();
+  }
+  if (event.target.closest("[data-detail-add]") && detailItem) {
+    const quantity = Number(itemDetailModal?.querySelector("[data-detail-qty]")?.value || 1);
+    addItemToCart(detailItem, quantity);
+    closeItemDetail();
+    cartDrawer?.setAttribute("aria-hidden", "false");
   }
   if (event.target.closest("[data-cart-open]")) {
     cartDrawer?.setAttribute("aria-hidden", "false");
@@ -291,10 +368,15 @@ if (bookingForm) {
   bookingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const cart = readCart();
+    if (!cart.length) {
+      cartStatusEl.textContent = "Add at least one product or service before checkout.";
+      return;
+    }
     const formData = new FormData(bookingForm);
     const payload = Object.fromEntries(formData.entries());
     payload.interest = cart.some((item) => item.type === "product") ? "Product order and booking" : "Salon booking";
     payload.cart_summary = cartSummary(cart);
+    payload.cart = cart;
     cartStatusEl.textContent = "Sending booking...";
     try {
       const response = await fetch("/inquire", {

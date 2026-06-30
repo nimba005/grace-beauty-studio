@@ -1,7 +1,9 @@
 ﻿
 from datetime import datetime
+from email.message import EmailMessage
 import json
 import os
+import smtplib
 import sqlite3
 from functools import wraps
 from pathlib import Path
@@ -405,6 +407,61 @@ def list_reviews(include_pending=False):
     return query_all(f"SELECT * FROM reviews {clause} ORDER BY is_approved DESC, id DESC")
 
 
+def format_cart_summary(cart):
+    if not isinstance(cart, list):
+        return ""
+    lines = []
+    for item in cart:
+        if not isinstance(item, dict):
+            continue
+        item_type = "Session" if item.get("type") == "service" else "Product"
+        try:
+            quantity = max(1, int(item.get("quantity") or 1))
+        except (TypeError, ValueError):
+            quantity = 1
+        details = " - ".join(str(value) for value in [item.get("meta"), item.get("price")] if value)
+        suffix = f" ({details})" if details else ""
+        lines.append(f"- {item_type}: {item.get('name', 'Selected item')} x{quantity}{suffix}")
+    return "\n".join(lines)
+
+
+def send_checkout_notification(subject, body):
+    smtp_host = os.environ.get("SMTP_HOST", "").strip()
+    if not smtp_host:
+        return False
+    message = EmailMessage()
+    message["Subject"] = subject
+    message["From"] = os.environ.get("SMTP_FROM", os.environ.get("STUDIO_EMAIL", ""))
+    message["To"] = os.environ.get("ORDER_NOTIFY_EMAIL", os.environ.get("STUDIO_EMAIL", ""))
+    message.set_content(body)
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    smtp_password = os.environ.get("SMTP_PASSWORD", "").strip()
+    with smtplib.SMTP(smtp_host, smtp_port, timeout=12) as server:
+        if os.environ.get("SMTP_TLS", "1") != "0":
+            server.starttls()
+        if smtp_user and smtp_password:
+            server.login(smtp_user, smtp_password)
+        server.send_message(message)
+    return True
+
+
+def attach_review_summaries(items, reviews, item_type):
+    grouped = {}
+    for review in reviews:
+        if review.get("item_type") != item_type:
+            continue
+        grouped.setdefault(review.get("item_id"), []).append(review)
+    for item in items:
+        item_reviews = grouped.get(item["id"], [])
+        ratings = [int(review.get("rating") or 0) for review in item_reviews]
+        average = round(sum(ratings) / len(ratings), 1) if ratings else 0
+        item["review_count"] = len(item_reviews)
+        item["average_rating"] = average
+        item["rating_percent"] = int((average / 5) * 100) if average else 0
+        item["review_comments"] = item_reviews[:2]
+
+
 def customer_has_interacted(phone, email):
     phone = (phone or "").strip()
     email = (email or "").strip().lower()
@@ -476,6 +533,9 @@ def checkbox_value(name):
 def home():
     services = list_services()
     products = list_products()
+    reviews = list_reviews()
+    attach_review_summaries(products, reviews, "product")
+    attach_review_summaries(services, reviews, "service")
     return render_template(
         "home.html",
         services=services,
@@ -483,7 +543,6 @@ def home():
         products=products,
         product_groups=group_products(products),
         testimonials=list_testimonials(),
-        reviews=list_reviews(),
         review_items={"services": services, "products": products},
     )
 
@@ -557,19 +616,36 @@ def inquire():
     name = (payload.get("name") or "").strip()
     phone = (payload.get("phone") or "").strip()
     email = (payload.get("email") or "").strip()
+    location = (payload.get("location") or "").strip()
+    preferred_date = (payload.get("preferred_date") or "").strip()
     interest = (payload.get("interest") or "").strip()
     message = (payload.get("message") or "").strip()
-    cart_summary = (payload.get("cart_summary") or "").strip()
+    cart = payload.get("cart") if hasattr(payload, "get") else []
+    cart_summary = format_cart_summary(cart) or (payload.get("cart_summary") or "").strip()
+    checkout_details = [
+        f"Customer: {name}",
+        f"Phone / WhatsApp: {phone}",
+        f"Email: {email or 'Not provided'}",
+        f"Location: {location or 'Not provided'}",
+        f"Preferred date: {preferred_date or 'Not provided'}",
+    ]
     if cart_summary:
-        message = f"{message}\n\nSelected items:\n{cart_summary}".strip()
-    if not name or not phone:
+        checkout_details.append(f"Selected items:\n{cart_summary}")
+    if message:
+        checkout_details.append(f"Notes:\n{message}")
+    message = "\n\n".join(checkout_details)
+    if not name or not phone or not location:
         if request.is_json:
-            return jsonify({"ok": False, "error": "Please add your name and phone or WhatsApp number."}), 400
-        flash("Please add your name and phone or WhatsApp number.", "error")
+            return jsonify({"ok": False, "error": "Please add your name, phone or WhatsApp number, and location."}), 400
+        flash("Please add your name, phone or WhatsApp number, and location.", "error")
         return redirect(url_for("home") + "#booking")
     customer = current_customer()
     user_id = customer["id"] if customer else 0
     execute("INSERT INTO inquiries (user_id, name, phone, email, interest, message, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'New', ?)", (user_id, name, phone, email, interest, message, now_stamp()))
+    try:
+        send_checkout_notification(f"Grace checkout: {name}", message)
+    except (OSError, smtplib.SMTPException, ValueError):
+        pass
     if request.is_json:
         return jsonify({"ok": True, "message": "Thank you. Grace will follow up with you shortly."})
     flash("Thank you. Grace will follow up with you shortly.", "success")

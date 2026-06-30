@@ -56,7 +56,27 @@
             <div class="service-panel-head"><h3>{{ group.name }}</h3><p>{{ group.services|length }} styles available</p></div>
             <div class="service-list">
               {% for service in group.services %}
-                <article class="service-row"><img src="{{ service.image_url }}" alt="{{ service.title }}"><div><span class="pill">{{ service.category }}</span><h3>{{ service.title }}</h3><p>{{ service.description }}</p><div class="card-meta"><strong>{{ service.price }}</strong><span>{{ service.duration }}</span></div></div><button type="button" data-cart-add data-item-type="service" data-item-id="{{ service.id }}" data-item-name="{{ service.title }}" data-item-meta="{{ service.category }} - {{ service.duration }}" data-item-price="{{ service.price }}">Book session</button></article>
+                <article class="service-row">
+                  <button class="item-image-button" type="button" data-item-detail data-item-type="service" data-item-id="{{ service.id }}" data-item-name="{{ service.title }}" data-item-category="{{ service.category }}" data-item-meta="{{ service.duration }}" data-item-price="{{ service.price }}" data-item-image="{{ service.image_url }}" data-item-description="{{ service.description }}" aria-label="View details for {{ service.title }}"><img src="{{ service.image_url }}" alt="{{ service.title }}"></button>
+                  <div>
+                    <span class="pill">{{ service.category }}</span>
+                    <h3>{{ service.title }}</h3>
+                    <p>{{ service.description }}</p>
+                    <div class="item-rating" aria-label="{{ service.average_rating or 0 }} out of 5 from {{ service.review_count }} reviews">
+                      <span class="stars"><span style="width: {{ service.rating_percent }}%">&#9733;&#9733;&#9733;&#9733;&#9733;</span></span>
+                      <small>{{ service.average_rating or "New" }}{% if service.review_count %} · {{ service.review_count }} review{{ "" if service.review_count == 1 else "s" }}{% else %} · no reviews yet{% endif %}</small>
+                    </div>
+                    {% if service.review_comments %}
+                      <div class="item-comments">
+                        {% for comment in service.review_comments %}
+                          <p>"{{ comment.message }}" <small>{{ comment.customer_name }}</small></p>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                    <div class="card-meta"><strong>{{ service.price }}</strong><span>{{ service.duration }}</span></div>
+                  </div>
+                  <button type="button" data-cart-add data-item-type="service" data-item-id="{{ service.id }}" data-item-name="{{ service.title }}" data-item-meta="{{ service.category }} - {{ service.duration }}" data-item-price="{{ service.price }}">Book session</button>
+                </article>
               {% endfor %}
             </div>
           </div>
@@ -84,12 +104,22 @@
             <div class="product-row">
               {% for product in group.products %}
                 <article class="beauty-card product-card boutique-product-card">
-                  <a class="product-image-link" href="#booking" aria-label="Ask about {{ product.name }}"><img src="{{ product.image_url }}" alt="{{ product.name }}"></a>
+                  <button class="product-image-link item-image-button" type="button" data-item-detail data-item-type="product" data-item-id="{{ product.id }}" data-item-name="{{ product.name }}" data-item-category="{{ product.category }}" data-item-meta="{{ product.size }} · {{ product.stock_status }}" data-item-price="{{ product.price }}" data-item-image="{{ product.image_url }}" data-item-description="{{ product.description }}" aria-label="View details for {{ product.name }}"><img src="{{ product.image_url }}" alt="{{ product.name }}"></button>
                   <div>
                     <span class="pill product-pill">{{ product.category }}</span>
                     <h3>{{ product.name }}</h3>
                     <p>{{ product.description }}</p>
-                    <div class="product-rating" aria-label="Customer rating"><span>★★★★★</span><small>({{ loop.index + 8 }})</small></div>
+                    <div class="item-rating product-rating" aria-label="{{ product.average_rating or 0 }} out of 5 from {{ product.review_count }} reviews">
+                      <span class="stars"><span style="width: {{ product.rating_percent }}%">&#9733;&#9733;&#9733;&#9733;&#9733;</span></span>
+                      <small>{{ product.average_rating or "New" }}{% if product.review_count %} · {{ product.review_count }} review{{ "" if product.review_count == 1 else "s" }}{% else %} · no reviews yet{% endif %}</small>
+                    </div>
+                    {% if product.review_comments %}
+                      <div class="item-comments">
+                        {% for comment in product.review_comments %}
+                          <p>"{{ comment.message }}" <small>{{ comment.customer_name }}</small></p>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
                     <div class="card-meta"><strong>{{ product.price }}</strong><span>{{ product.size }} · {{ product.stock_status }}</span></div>
                     <button type="button" data-cart-add data-item-type="product" data-item-id="{{ product.id }}" data-item-name="{{ product.name }}" data-item-meta="{{ product.category }} - {{ product.size }}" data-item-price="{{ product.price }}">Add to cart</button>
                   </div>
@@ -101,6 +131,18 @@
           <p class="empty-state">Products will appear here once Grace adds them to the shelf.</p>
         {% endfor %}
       </div>
+      <button class="gated-open product-review-open" type="button" data-gated-open="review" hidden>Leave a verified product or service review</button>
+      <form class="review-form product-review-form gated-form" method="post" action="/reviews" data-gated-form="review" hidden>
+        <div><p class="eyebrow">Review your purchase</p><h3>After a booking or product order, add your star rating and comment here.</h3></div>
+        <label>Name<input name="customer_name" required placeholder="Your name" value="{{ customer.name if customer else '' }}"></label>
+        <label>Phone used<input name="phone" placeholder="+254..." value="{{ customer.phone if customer else '' }}"></label>
+        <label>Email used<input name="email" type="email" placeholder="Optional" value="{{ customer.email if customer else '' }}"></label>
+        <label>Rating<select name="rating"><option value="5">5 - Excellent</option><option value="4">4 - Very good</option><option value="3">3 - Good</option><option value="2">2 - Fair</option><option value="1">1 - Needs attention</option></select></label>
+        <label>Review type<select name="item_type" data-review-type><option value="product">Product</option><option value="service">Service</option></select></label>
+        <label>Product or service<select name="item_id" data-review-item>{% for product in review_items.products %}<option value="{{ product.id }}" data-type="product">{{ product.name }}</option>{% endfor %}{% for service in review_items.services %}<option value="{{ service.id }}" data-type="service" hidden>{{ service.title }}</option>{% endfor %}</select></label>
+        <label class="wide">Review<textarea name="message" rows="4" required placeholder="Share how the product or service worked for you."></textarea></label>
+        <button type="submit">Submit review</button>
+      </form>
       <section id="testimonials" class="testimonial-band product-testimonials">
         <div class="section-heading"><p class="eyebrow">Customer voices</p><h2>Real notes from women who booked, ordered, and came back glowing.</h2></div>
         <div class="testimonial-carousel" aria-label="Rotating customer testimonials">
@@ -135,31 +177,9 @@
           <button type="submit">Submit testimony</button>
         </form>
       </section>
-      <div id="reviews" class="reviews-panel">
-        <div class="section-heading split-heading"><div><p class="eyebrow">Customer reviews</p><h2>Reviews from confirmed bookings and product orders.</h2></div><p>Reviews are checked against a previous booking or order request before Grace publishes them.</p></div>
-        <div class="review-list">
-          {% for review in reviews %}
-            <article class="review-card"><div><strong>{{ review.item_name }}</strong><span>{{ review.item_type|title }} review</span></div><p>{{ review.message }}</p><div class="rating-row"><span>{{ '*' * review.rating }}{{ '-' * (5 - review.rating) }}</span><small>{{ review.customer_name }}</small></div></article>
-          {% else %}
-            <p class="empty-state">No published reviews yet.</p>
-          {% endfor %}
-        </div>
-        <button class="gated-open" type="button" data-gated-open="review" hidden>Leave a verified review</button>
-        <form class="review-form gated-form" method="post" action="/reviews" data-gated-form="review" hidden>
-          <div><p class="eyebrow">Leave a review</p><h3>Use the phone or email you used when booking or ordering.</h3></div>
-          <label>Name<input name="customer_name" required placeholder="Your name" value="{{ customer.name if customer else '' }}"></label>
-          <label>Phone used<input name="phone" placeholder="+254..." value="{{ customer.phone if customer else '' }}"></label>
-          <label>Email used<input name="email" type="email" placeholder="Optional" value="{{ customer.email if customer else '' }}"></label>
-          <label>Rating<select name="rating"><option value="5">5 - Excellent</option><option value="4">4 - Very good</option><option value="3">3 - Good</option><option value="2">2 - Fair</option><option value="1">1 - Needs attention</option></select></label>
-          <label>Review type<select name="item_type" data-review-type><option value="product">Product</option><option value="service">Service</option></select></label>
-          <label>Product or service<select name="item_id" data-review-item>{% for product in review_items.products %}<option value="{{ product.id }}" data-type="product">{{ product.name }}</option>{% endfor %}{% for service in review_items.services %}<option value="{{ service.id }}" data-type="service" hidden>{{ service.title }}</option>{% endfor %}</select></label>
-          <label class="wide">Review<textarea name="message" rows="4" required placeholder="Share how the product or service worked for you."></textarea></label>
-          <button type="submit">Submit review</button>
-        </form>
-      </div>
     </section>
     <section id="booking" class="booking-section compact-booking">
-      <div class="contact-intro"><p class="eyebrow">Contact us</p><h2>Talk to Grace through your preferred channel.</h2><p>Use the cart for product orders and session bookings, or choose one of the contact options below.</p></div>
+      <div class="contact-intro"><p class="eyebrow">Contact us</p><h2>Talk to Grace through your preferred channel.</h2><p>Use the cart for product orders and session bookings. You can also open WhatsApp for the quickest reply, or choose another contact option below.</p></div>
       <div class="contact-card">
         <div><strong>Direct contact</strong><span>Open WhatsApp, email, LinkedIn, or phone with one tap.</span></div>
         <div class="quick-actions contact-actions" aria-label="Contact Grace">
@@ -180,8 +200,10 @@
         <label>Name<input name="name" required placeholder="Your name" value="{{ customer.name if customer else '' }}"></label>
         <label>Phone or WhatsApp<input name="phone" required placeholder="+254..." value="{{ customer.phone if customer else '' }}"></label>
         <label>Email<input name="email" type="email" placeholder="Optional" value="{{ customer.email if customer else '' }}"></label>
-        <label class="wide">Message<textarea name="message" rows="3" placeholder="Preferred date, delivery location, or any notes."></textarea></label>
-        <button type="submit">Submit booking</button>
+        <label>Delivery / service location<input name="location" required placeholder="Estate, building, town, or delivery address"></label>
+        <label>Preferred date<input name="preferred_date" type="date"></label>
+        <label class="wide">Notes<textarea name="message" rows="3" placeholder="Delivery instructions, preferred time, hairstyle notes, or product questions."></textarea></label>
+        <button type="submit">Checkout order</button>
       </form>
       <p class="cart-status" data-cart-status></p>
     </div>
@@ -228,6 +250,20 @@
         </div>
         <p class="auth-status" data-auth-status></p>
       {% endif %}
+    </div>
+  </aside>
+  <aside class="item-detail-modal" data-item-detail-modal aria-hidden="true">
+    <div class="item-detail-panel">
+      <button class="item-detail-close" type="button" data-item-detail-close aria-label="Close details">Close</button>
+      <img data-detail-image alt="">
+      <div class="item-detail-content">
+        <p class="eyebrow" data-detail-category></p>
+        <h2 data-detail-name></h2>
+        <p data-detail-description></p>
+        <div class="item-detail-meta"><strong data-detail-price></strong><span data-detail-meta></span></div>
+        <label>Quantity<input data-detail-qty type="number" min="1" max="20" value="1"></label>
+        <button type="button" data-detail-add>Add to cart</button>
+      </div>
     </div>
   </aside>
   <section class="book-contact-widget" data-book-widget>
